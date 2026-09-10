@@ -1,0 +1,8 @@
+{
+  "product": "bomb-manager",
+  "channel": "stable",
+  "version": "0.2.1",
+  "firmware_url": "https://bomb-v2-dummy-api.vercel.app/firmware/bomb-manager-0.2.1.bin",
+  "sha256": "REPLACE_WITH_PUBLISH_SCRIPT",
+  "size": 0
+}

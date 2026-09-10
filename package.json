@@ -1,0 +1,6 @@
+{
+  "name": "bomb-v2-ota-dummy-api",
+  "private": true,
+  "version": "0.1.0",
+  "engines": { "node": ">=18" }
+}
