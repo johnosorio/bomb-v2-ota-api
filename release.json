@@ -1,8 +1,8 @@
 {
   "product": "bomb-manager",
   "channel": "stable",
-  "version": "0.2.8",
-  "firmware_url": "/firmware/bomb-manager-0.2.8.bin",
-  "sha256": "67a44c1b286d07c5b3cb882d7dddb26df6bf5aed665adb9cfe600e485063c5fe",
-  "size": 1513712
+  "version": "0.2.9",
+  "firmware_url": "/firmware/bomb-manager-0.2.9.bin",
+  "sha256": "4db8bb4e538358f0e3eae0e7428ff2ec44dda80b084aef64b06b29d87b8c35c1",
+  "size": 1513824
 }
