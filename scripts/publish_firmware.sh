@@ -29,7 +29,7 @@ with open("release.json", "w", encoding="utf-8") as handle:
         "product": "bomb-manager",
         "channel": "stable",
         "version": version,
-        "firmware_url": "/firmware/" + target.split("/", 1)[1],
+        "firmware_url": "/" + target.split("public/", 1)[1],
         "sha256": sha256,
         "size": int(size),
     }, handle, indent=2)
