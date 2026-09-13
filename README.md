@@ -32,6 +32,22 @@ usa memoria de proceso únicamente para validar el contrato; los datos se
 perderán cuando Vercel recicle la función. La siguiente versión debe usar una
 base de datos persistente y autenticación del establecimiento.
 
+## Ciclo de vida de dispositivos
+
+La API separa el estado de conexión (`status`) del estado de gestión
+(`lifecycle_state`). Los estados son `DESCUBIERTO`, `PENDIENTE_DE_AUTORIZAR`,
+`VINCULADO`, `DISPONIBLE`, `RESERVADO`, `EN_JUEGO`, `MANTENIMIENTO` y
+`RETIRADO`. Las transiciones inválidas responden HTTP 409.
+
+`POST /api/devices` conserva la identidad por `device_id`, `chip_id` y
+`wifi_mac`; repetirlo con el mismo `device_id` es un heartbeat. La detección no
+autoriza automáticamente una bomba. `PATCH /api/devices` acepta `link`,
+`authorize`, `unlink`, `transfer`, `replace`, `retire` o un
+`lifecycle_state` explícito. Los cambios quedan en `lifecycle_history` y en
+`GET /api/audit`. No se puede desvincular, transferir ni reemplazar un equipo
+`RESERVADO` o `EN_JUEGO`. Esta API sigue usando memoria provisional y requiere
+base de datos y autenticación antes de producción.
+
 ## Publicar un firmware de prueba
 
 Desde este directorio:
