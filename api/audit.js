@@ -1,0 +1,2 @@
+import state, { json } from "./_state.js";
+export default function handler(request, response) { if (request.method !== "GET") return json(response, 405, { error: "METHOD_NOT_ALLOWED" }); const { device_id, establishment_id, limit = "100" } = request.query; return json(response, 200, { events: state.audit.filter((e) => (!device_id || e.device_id === device_id) && (!establishment_id || e.establishment_id === establishment_id)).slice(0, Math.min(Number(limit) || 100, 1000)) }); }
