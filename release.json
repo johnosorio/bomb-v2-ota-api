@@ -4,5 +4,6 @@
   "version": "0.2.13",
   "firmware_url": "/firmware/bomb-manager-0.2.13.bin",
   "sha256": "99277fb036e2d06bb2f8b76b0920481f0ed8e171c4e229f4bc967d7e5f54e86e",
-  "size": 1518080
+  "size": 1518080,
+  "catalog_schema_version": 1
 }
