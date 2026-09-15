@@ -32,6 +32,23 @@ usa memoria de proceso únicamente para validar el contrato; los datos se
 perderán cuando Vercel recicle la función. La siguiente versión debe usar una
 base de datos persistente y autenticación del establecimiento.
 
+## Autorización comercial de demo
+
+Para probar el CoreS3, esta instancia incorpora un fixture inmutable del
+establecimiento `01` y su licencia:
+
+- 1 bomba autorizada.
+- Solo permite `standalone-demo`.
+- `origin: DEMO` y firma ficticia; no representa una licencia comercial.
+- `GET /api/authorization`, `GET /api/establishments` y
+  `GET /api/licenses` son solo lectura; no se permiten escrituras públicas.
+
+El fixture va empaquetado en el despliegue, por lo que sigue disponible tras
+un cold start de Vercel y no depende de la memoria efímera de una Function. No
+es una base de datos ni un sistema de licencias administrable. Antes de operar
+con clientes hay que conectar almacenamiento persistente, autenticar las rutas
+administrativas y reemplazar la firma ficticia por autorización criptográfica.
+
 ## Ciclo de vida de dispositivos
 
 La API separa el estado de conexión (`status`) del estado de gestión
