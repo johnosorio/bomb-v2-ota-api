@@ -40,6 +40,9 @@ establecimiento `01` y su licencia:
 - 1 bomba autorizada.
 - Solo permite `standalone-demo`.
 - `origin: DEMO` y firma ficticia; no representa una licencia comercial.
+- El JSON declara `schema_version: 1`; campos: establecimiento, estado
+  vigente, licencia, expiración, capacidad, bombas autorizadas, juegos,
+  origen y firma demo.
 - `GET /api/authorization`, `GET /api/establishments` y
   `GET /api/licenses` son solo lectura; no se permiten escrituras públicas.
 

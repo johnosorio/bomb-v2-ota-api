@@ -26,6 +26,7 @@ export default function handler(request, response) {
   if (!license) return json(response, 404, { error: "LICENSE_NOT_FOUND" });
 
   return json(response, 200, {
+    schema_version: 1,
     establishment_id: establishmentId,
     establishment_name: establishment.name,
     valid_now: isValid(license),

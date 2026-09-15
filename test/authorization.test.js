@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import authorization from "../api/authorization.js";
 import establishments from "../api/establishments.js";
 import licenses from "../api/licenses.js";
+import state from "../api/_state.js";
 
 function invoke(handler, method, query = {}) {
   const result = { headers: {}, statusCode: 200, body: undefined };
@@ -31,11 +32,31 @@ function invoke(handler, method, query = {}) {
 test("demo establishment 01 has an active least-privilege license", () => {
   const result = invoke(authorization, "GET", { establishment_id: "01" });
   assert.equal(result.statusCode, 200);
+  assert.equal(result.body.schema_version, 1);
   assert.equal(result.body.establishment_id, "01");
   assert.equal(result.body.valid_now, true);
   assert.equal(result.body.authorized_bombs, 1);
   assert.deepEqual(result.body.allowed_games, ["standalone-demo"]);
   assert.equal(result.body.origin, "DEMO");
+});
+
+test("active but expired license is reported as not valid", () => {
+  const license = state.licenses.get("demo-license-01");
+  const expiresAt = license.expires_at;
+  license.expires_at = "2000-01-01T00:00:00.000Z";
+  const result = invoke(authorization, "GET", { establishment_id: "01" });
+  license.expires_at = expiresAt;
+  assert.equal(result.statusCode, 200);
+  assert.equal(result.body.valid_now, false);
+});
+
+test("establishment without an active license is rejected", () => {
+  const license = state.licenses.get("demo-license-01");
+  state.licenses.delete("demo-license-01");
+  const result = invoke(authorization, "GET", { establishment_id: "01" });
+  state.licenses.set("demo-license-01", license);
+  assert.equal(result.statusCode, 404);
+  assert.equal(result.body.error, "LICENSE_NOT_FOUND");
 });
 
 test("authorization rejects unknown establishments and missing IDs", () => {
