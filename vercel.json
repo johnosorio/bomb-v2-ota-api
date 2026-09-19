@@ -1,1 +1,7 @@
-{}
+{
+  "functions": {
+    "api/releases/*.js": {
+      "includeFiles": "release*.json"
+    }
+  }
+}
