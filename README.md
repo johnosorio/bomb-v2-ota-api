@@ -3,6 +3,29 @@
 Servicio mínimo para probar el contrato de actualización remota del Bomb
 Manager en Vercel.
 
+## Fase 1 OTA: incremento local en curso
+
+El [contrato de inventario autenticado](docs/OTA_FOUNDATION.md) añade
+`GET/POST /api/ota/devices` con Supabase Auth, RLS y auditoría transaccional.
+Está **desactivado por defecto** (`.env.example`) y habilitado únicamente en
+Preview con Supabase `boom-manager`. Migración aplicada y validación remota:
+[24 comprobaciones + persistencia entre despliegues](docs/OTA_PREVIEW_VALIDATION.md).
+No sustituye las rutas demo de abajo ni autentica todavía al CoreS3.
+
+- `npm test`: tests HTTP/legacy; proveedor Supabase simulado.
+- `npm run test:db`: requiere `initdb`, `pg_ctl`, `psql`; crea un clúster local
+  temporal, sin TCP, sin leer credenciales ni DATABASE_URL; comprueba SQL/RLS,
+  concurrencia y reinicio. Para seguridad, deja el clúster detenido y conservado
+  en `/private/tmp/bomb-ota-pg-*`; no ejecuta limpieza recursiva automática.
+  Requiere también el servidor `postgres`, no sólo `libpq`. Si no está en PATH:
+  `OTA_TEST_PG_BIN=/opt/homebrew/opt/postgresql@17/bin npm run test:db`.
+- Las migraciones viven **sólo aquí**, en `supabase/migrations`. El bootstrap
+  CLI del repo firmware no es otro dueño del esquema. No ejecutar los fixtures
+  de `test/sql` en una base remota: sustituyen Auth únicamente para tests.
+
+Auth/PostgREST ya se validaron en Preview; faltan identidad CoreS3, releases,
+despliegues, recibos, UI y pruebas físicas. No es un ciclo OTA cerrado.
+
 ## Contrato
 
 `GET /api/releases/stable` devuelve:

@@ -20,7 +20,8 @@ function bodyOf(request) {
   }
   return request.body || {};
 }
-function transition(device, next, body) {
+function addAudit(audits, event, data) { audits.push({ event, data }); }
+function transition(device, next, body, audits) {
   if (!LIFECYCLE_STATES.includes(next)) return { error: "INVALID_LIFECYCLE_STATE", allowed: LIFECYCLE_STATES };
   if (device.lifecycle_state === next) return { device };
   const allowed = transitions[device.lifecycle_state] || [];
@@ -29,7 +30,7 @@ function transition(device, next, body) {
   device.lifecycle_state = next;
   device.updated_at = event.occurred_at;
   device.lifecycle_history = [event, ...(device.lifecycle_history || [])].slice(0, 200);
-  recordAudit("DEVICE_LIFECYCLE_CHANGED", { actor: event.actor, device_id: device.device_id, establishment_id: device.establishment_id, from: event.from, to: event.to, reason: event.reason });
+  addAudit(audits, "DEVICE_LIFECYCLE_CHANGED", { actor: event.actor, device_id: device.device_id, establishment_id: device.establishment_id, from: event.from, to: event.to, reason: event.reason });
   return { device };
 }
 
@@ -40,14 +41,14 @@ function requireDevice(body) {
 }
 const rejectActive = (device) => ["RESERVADO", "EN_JUEGO"].includes(device.lifecycle_state);
 
-function applyAction(device, body) {
+function applyAction(device, body, audits) {
   const action = String(body.action || "").toLowerCase();
   if (action === "authorize") {
     if (device.lifecycle_state !== "PENDIENTE_DE_AUTORIZAR") return { error: "DEVICE_NOT_PENDING_AUTHORIZATION", state: device.lifecycle_state };
     device.authorization_status = "AUTHORIZED";
-    const result = transition(device, "VINCULADO", body);
+    const result = transition(device, "VINCULADO", body, audits);
     if (result.error) return result;
-    recordAudit("DEVICE_AUTHORIZED", { actor: body.actor || "establishment", device_id: device.device_id, establishment_id: device.establishment_id });
+    addAudit(audits, "DEVICE_AUTHORIZED", { actor: body.actor || "establishment", device_id: device.device_id, establishment_id: device.establishment_id });
     return result;
   }
   if (action === "link") {
@@ -55,19 +56,19 @@ function applyAction(device, body) {
     device.establishment_id = String(body.establishment_id);
     device.batch_id = body.batch_id == null ? null : String(body.batch_id);
     if (device.lifecycle_state === "DESCUBIERTO") {
-      const result = transition(device, "PENDIENTE_DE_AUTORIZAR", body);
+      const result = transition(device, "PENDIENTE_DE_AUTORIZAR", body, audits);
       if (result.error) return result;
     } else if (device.lifecycle_state !== "PENDIENTE_DE_AUTORIZAR") return { error: "DEVICE_CANNOT_BE_LINKED", state: device.lifecycle_state };
-    recordAudit("DEVICE_LINK_REQUESTED", { actor: body.actor || "establishment", device_id: device.device_id, establishment_id: device.establishment_id });
+    addAudit(audits, "DEVICE_LINK_REQUESTED", { actor: body.actor || "establishment", device_id: device.device_id, establishment_id: device.establishment_id });
     return { device };
   }
   if (action === "unlink") {
     if (rejectActive(device)) return { error: "DEVICE_ACTIVE_CANNOT_BE_UNLINKED" };
     const previousEstablishment = device.establishment_id;
     device.establishment_id = null; device.batch_id = null; device.authorization_status = "PENDING";
-    const result = transition(device, "DESCUBIERTO", body);
+    const result = transition(device, "DESCUBIERTO", body, audits);
     if (result.error) return result;
-    recordAudit("DEVICE_UNLINKED", { actor: body.actor || "establishment", device_id: device.device_id, previous_establishment_id: previousEstablishment });
+    addAudit(audits, "DEVICE_UNLINKED", { actor: body.actor || "establishment", device_id: device.device_id, previous_establishment_id: previousEstablishment });
     return result;
   }
   if (action === "transfer") {
@@ -75,9 +76,9 @@ function applyAction(device, body) {
     if (rejectActive(device)) return { error: "DEVICE_ACTIVE_CANNOT_BE_TRANSFERRED" };
     const previousEstablishment = device.establishment_id;
     device.establishment_id = String(body.establishment_id); device.batch_id = body.batch_id == null ? null : String(body.batch_id); device.authorization_status = "PENDING";
-    const result = transition(device, "PENDIENTE_DE_AUTORIZAR", body);
+    const result = transition(device, "PENDIENTE_DE_AUTORIZAR", body, audits);
     if (result.error) return result;
-    recordAudit("DEVICE_TRANSFER_REQUESTED", { actor: body.actor || "establishment", device_id: device.device_id, previous_establishment_id: previousEstablishment, establishment_id: device.establishment_id });
+    addAudit(audits, "DEVICE_TRANSFER_REQUESTED", { actor: body.actor || "establishment", device_id: device.device_id, previous_establishment_id: previousEstablishment, establishment_id: device.establishment_id });
     return result;
   }
   if (action === "replace") {
@@ -87,13 +88,13 @@ function applyAction(device, body) {
     if (!replacement) return { error: "REPLACEMENT_DEVICE_NOT_FOUND" };
     if (!["VINCULADO", "DISPONIBLE"].includes(replacement.lifecycle_state)) return { error: "REPLACEMENT_DEVICE_NOT_AVAILABLE", state: replacement.lifecycle_state };
     device.replaced_by = replacement.device_id;
-    const result = transition(device, "RETIRADO", body);
+    const result = transition(device, "RETIRADO", body, audits);
     if (result.error) return result;
-    recordAudit("DEVICE_REPLACED", { actor: body.actor || "establishment", device_id: device.device_id, replaced_by: replacement.device_id, establishment_id: device.establishment_id });
+    addAudit(audits, "DEVICE_REPLACED", { actor: body.actor || "establishment", device_id: device.device_id, replaced_by: replacement.device_id, establishment_id: device.establishment_id });
     return result;
   }
-  if (action === "retire") return transition(device, "RETIRADO", body);
-  if (body.lifecycle_state) return transition(device, String(body.lifecycle_state), body);
+  if (action === "retire") return transition(device, "RETIRADO", body, audits);
+  if (body.lifecycle_state) return transition(device, String(body.lifecycle_state), body, audits);
   return { error: "ACTION_OR_LIFECYCLE_STATE_REQUIRED" };
 }
 
@@ -133,10 +134,13 @@ export default function handler(request, response) {
   if (request.method === "PATCH") {
     const found = requireDevice(body);
     if (found.error) return json(response, 404, found);
-    const result = applyAction(found.device, body);
+    const candidate = structuredClone(found.device);
+    const audits = [];
+    const result = applyAction(candidate, body, audits);
     if (result.error) return json(response, 409, result);
-    state.devices.set(found.device.device_id, found.device);
-    return json(response, 200, found.device);
+    state.devices.set(candidate.device_id, candidate);
+    for (const audit of audits) recordAudit(audit.event, audit.data);
+    return json(response, 200, candidate);
   }
   return json(response, 405, { error: "METHOD_NOT_ALLOWED" });
 }

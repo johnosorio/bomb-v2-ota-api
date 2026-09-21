@@ -4,5 +4,5 @@
   "version": "0.1.0",
   "type": "module",
   "engines": { "node": ">=18" },
-  "scripts": { "test": "node --test" }
+  "scripts": { "test": "node --test", "test:db": "node scripts/check-ota-db.mjs" }
 }

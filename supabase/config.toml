@@ -1,0 +1,4 @@
+# Canonical owner of OTA application migrations. No seeds or auth-setting changes.
+project_id = "bomb-v2-ota-api"
+[db]
+major_version = 17

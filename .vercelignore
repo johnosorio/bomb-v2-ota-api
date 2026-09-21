@@ -1,0 +1,11 @@
+/.git/
+/.vercel/
+/.env
+/.env.*
+/AGENTS.md
+/README.md
+/docs/
+/test/
+/scripts/
+/supabase/
+/config/
