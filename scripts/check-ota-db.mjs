@@ -6,6 +6,7 @@ import { mkdtemp, readdir, realpath } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
+import { checkDeviceGateway } from "./check-device-gateway.mjs";
 
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -83,9 +84,11 @@ try {
   const licenseState = async () => (await sql(`select revision,status,(select count(*) from public.ota_license_operations where device_id='${licenseDevice}') from public.ota_device_licenses where device_id='${licenseDevice}';`)).stdout.trim();
   const beforeLicenseRestart = await licenseState();
   assert.match(beforeLicenseRestart, /^2\|(granted|revoked)\|3$/);
+  const checkGatewayAfterRestart = await checkDeviceGateway(temp);
   // Server restart as well as independent connections must retain committed data.
   await run("pg_ctl", ["-D", data, "-w", "stop", "-m", "fast"]);
   await startCluster();
+  await checkGatewayAfterRestart();
   const afterRestart = await sql(identity + "select count(*) from public.ota_devices;");
   assert.equal(afterRestart.stdout.trim().split("\n").at(-1), "2", "RLS-visible inventory survives DB restart");
   assert.equal(await licenseState(), beforeLicenseRestart, "license revision/state/receipts survive restart");

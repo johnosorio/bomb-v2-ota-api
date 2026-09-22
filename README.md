@@ -26,15 +26,27 @@ No sustituye las rutas demo de abajo ni autentica todavía al CoreS3.
 Auth/PostgREST ya se validaron en Preview; faltan identidad CoreS3, releases,
 despliegues, recibos, UI y pruebas físicas. No es un ciclo OTA cerrado.
 
-## OTA-03.2a: administración de licencias, sólo local
+## OTA-03.2b: gateway de dispositivo, sólo validado localmente
+
+`POST /api/ota/device-license`: prueba P-256, descubrimiento de identidad inicial,
+reto de un solo uso y licencia/estado firmados desde la concesión actual.
+[Protocolo, configuración segura y evidencia](docs/OTA_DEVICE_GATEWAY.md).
+`OTA_DEVICE_GATEWAY_ENABLED` apagado por defecto; nuevo rol SQL sin LOGIN hasta
+aprovisionamiento autorizado. Migración `20260922000200` aún no aplicada remotamente.
+Pruebas incluyen PostgreSQL real, revocación concurrente y reinicio. No se han
+integrado CoreS3/SD/reloj ni habilitado activación física. Secretos no incluidos.
+
+## OTA-03.2a: administración de licencias, sólo validado localmente
 
 `GET/POST /api/ota/licenses` añade aprobación administrativa de MAC/huella,
 concesión/renovación y revocación con revisiones y auditoría transaccional.
 Requiere también `OTA_LICENSE_ADMIN_ENABLED=true` (apagado por defecto).
 [Contrato, estados, permisos, reintentos y validación](docs/OTA_LICENSE_ADMINISTRATION.md).
-Migración `20260922000100` **no aplicada remotamente**, API sin desplegar.
-No acredita posesión de clave ni emite documentos: gateway seguro y CoreS3
-continúan pendientes. Los recibos históricos no son licencias válidas.
+Migración `20260922000100` **no aplicada remotamente**, API sin validación remota
+de licencias; el push puede generar Preview automático, no habilita sus flags.
+Esta ruta administrativa no acredita posesión ni emite documentos; el gateway
+03.2b está implementado aparte y CoreS3 sigue pendiente. Los recibos históricos
+no son licencias válidas.
 
 ## OTA-03.1: documento de licencia, componente aislado
 

@@ -1,5 +1,9 @@
 # OTA-03.2a — administración persistente de licencias
 
+Nota posterior: el [gateway 03.2b](OTA_DEVICE_GATEWAY.md) ya está implementado
+y validado localmente. Este documento conserva el alcance administrativo;
+ninguna de las dos migraciones nuevas se ha aplicado remotamente.
+
 2026-09-22. Implementación **local**, posterior al checkpoint `68c621a`.
 Migración forward `20260922000100_ota_license_administration.sql`, no aplicada
 a Supabase. No despliegue Vercel, firma/emisión de documentos, activación real,

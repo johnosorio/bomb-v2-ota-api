@@ -3,6 +3,14 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "engines": { "node": ">=18" },
-  "scripts": { "test": "node --test", "test:db": "node scripts/check-ota-db.mjs" }
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "test:db": "node scripts/check-ota-db.mjs"
+  },
+  "dependencies": {
+    "pg": "8.23.0"
+  }
 }
