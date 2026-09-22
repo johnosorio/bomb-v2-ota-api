@@ -26,6 +26,26 @@ No sustituye las rutas demo de abajo ni autentica todavía al CoreS3.
 Auth/PostgREST ya se validaron en Preview; faltan identidad CoreS3, releases,
 despliegues, recibos, UI y pruebas físicas. No es un ciclo OTA cerrado.
 
+## OTA-03: documento de licencia, componente aislado
+
+`lib/ota/license-document.js` incorpora firma/verificación ES256 con claves
+inyectadas, destinatario (UUID, credencial, huella de clave y MAC), tiempo UTC
+y revisión mínima. Perfil estricto JWS de hasta 2048 caracteres; algoritmo,
+issuer, audience y tipo fijos, sin descargar claves indicadas por el documento.
+Contrato compartido: [OTA_03_CONTRATO.md](../bomb-v2/OTA_03_CONTRATO.md).
+
+No es un endpoint de emisión ni autoriza administradores/dispositivos por sí
+solo. No se conecta todavía a DB, revocación, CoreS3 o SD; no carga claves desde
+variables de entorno y no altera las rutas demo. El documento está firmado,
+**no cifrado**: la protección AES-GCM de SD sigue pendiente. La futura emisión
+debe partir de una concesión autorizada y versionada durablemente en DB.
+
+`npm test` incluye pruebas con claves efímeras, verificación independiente por
+WebCrypto, alteración, otra identidad/clave, caducidad, revisión vieja y entradas
+malformadas. No lee secretos ni demuestra integración con firmware o Supabase.
+La política aprobada conserva la ronda activa ante vencimiento/revocación;
+bloquea nuevas partidas/rondas, sin convertir la nube en reloj de Bomb01.
+
 ## Contrato
 
 `GET /api/releases/stable` devuelve:
