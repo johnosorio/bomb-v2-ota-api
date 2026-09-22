@@ -26,7 +26,17 @@ No sustituye las rutas demo de abajo ni autentica todavía al CoreS3.
 Auth/PostgREST ya se validaron en Preview; faltan identidad CoreS3, releases,
 despliegues, recibos, UI y pruebas físicas. No es un ciclo OTA cerrado.
 
-## OTA-03: documento de licencia, componente aislado
+## OTA-03.2a: administración de licencias, sólo local
+
+`GET/POST /api/ota/licenses` añade aprobación administrativa de MAC/huella,
+concesión/renovación y revocación con revisiones y auditoría transaccional.
+Requiere también `OTA_LICENSE_ADMIN_ENABLED=true` (apagado por defecto).
+[Contrato, estados, permisos, reintentos y validación](docs/OTA_LICENSE_ADMINISTRATION.md).
+Migración `20260922000100` **no aplicada remotamente**, API sin desplegar.
+No acredita posesión de clave ni emite documentos: gateway seguro y CoreS3
+continúan pendientes. Los recibos históricos no son licencias válidas.
+
+## OTA-03.1: documento de licencia, componente aislado
 
 `lib/ota/license-document.js` incorpora firma/verificación ES256 con claves
 inyectadas, destinatario (UUID, credencial, huella de clave y MAC), tiempo UTC
