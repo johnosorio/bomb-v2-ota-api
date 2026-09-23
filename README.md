@@ -5,6 +5,8 @@ Manager en Vercel.
 
 ## Fase 1 OTA: incremento local en curso
 
+Checkpoint y pendientes para retomar: [notas de cierre](docs/OTA_PENDING_NOTES.md).
+
 El [contrato de inventario autenticado](docs/OTA_FOUNDATION.md) añade
 `GET/POST /api/ota/devices` con Supabase Auth, RLS y auditoría transaccional.
 Está **desactivado por defecto** (`.env.example`) y habilitado únicamente en
