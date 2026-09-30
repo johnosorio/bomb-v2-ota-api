@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import pg from "pg";
 import { generateKeyPairSync, sign, randomBytes, randomUUID } from "node:crypto";
 import { deviceGateway } from "../lib/ota/device-gateway.js";
-import { gatewayTransaction } from "../lib/ota/gateway-db.js";
+import { gatewayTransaction, GATEWAY_ROLE_CHECK } from "../lib/ota/gateway-db.js";
 import { deviceProofInput, sha256 } from "../lib/ota/device-proof.js";
 import { verifyDeviceResponse } from "../lib/ota/device-response.js";
 import { createHandler } from "../api/ota/device-license.js";
@@ -81,6 +81,26 @@ export async function checkDeviceGateway(socket) {
     for (const role of ["anon", "authenticated", "service_role"]) {
       assert.equal((await owner.query("SELECT has_function_privilege($1,'public.ota_gateway_challenge(jsonb,text)','EXECUTE') AS ok", [role])).rows[0].ok, false);
       assert.equal((await owner.query("SELECT has_function_privilege($1,'public.ota_gateway_consume(jsonb,uuid,text,text)','EXECUTE') AS ok", [role])).rows[0].ok, false);
+    }
+    // Supabase exposes a platform event trigger through PUBLIC EXECUTE. Such
+    // functions cannot be called as SQL; callable definers and all OTA routines
+    // must still fail the runtime privilege check.
+    await owner.query("CREATE FUNCTION public.platform_rls_fixture() RETURNS event_trigger LANGUAGE plpgsql SECURITY DEFINER AS $$ BEGIN RAISE EXCEPTION 'must never run'; END $$");
+    const eventClient = new pg.Client({ ...connection, user: "bomb_ota_gateway" });
+    eventClient.on("error", () => {}); await eventClient.connect();
+    try {
+      assert.equal((await eventClient.query(GATEWAY_ROLE_CHECK)).rows[0].ok, true);
+      await assert.rejects(eventClient.query("SELECT public.platform_rls_fixture()"), e => e.code === "0A000");
+      await owner.query("CREATE FUNCTION public.platform_callable_fixture() RETURNS int LANGUAGE sql SECURITY DEFINER AS $$ SELECT 1 $$");
+      assert.equal((await eventClient.query(GATEWAY_ROLE_CHECK)).rows[0].ok, false);
+      await owner.query("DROP FUNCTION public.platform_callable_fixture()");
+      await owner.query("CREATE FUNCTION public.ota_event_fixture() RETURNS event_trigger LANGUAGE plpgsql SECURITY DEFINER AS $$ BEGIN RETURN; END $$");
+      assert.equal((await eventClient.query(GATEWAY_ROLE_CHECK)).rows[0].ok, false);
+      await owner.query("DROP FUNCTION public.ota_event_fixture()");
+      assert.equal((await eventClient.query(GATEWAY_ROLE_CHECK)).rows[0].ok, true);
+    } finally {
+      await eventClient.end();
+      await owner.query("DROP FUNCTION IF EXISTS public.platform_callable_fixture(), public.ota_event_fixture(), public.platform_rls_fixture()");
     }
     // Fail closed if operator grants broaden the runtime role after migration.
     await owner.query("GRANT SELECT ON public.ota_devices TO bomb_ota_gateway");
