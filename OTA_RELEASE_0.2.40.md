@@ -20,8 +20,8 @@ Pruebas firmware: `../bomb-v2/hardware/validation/ota-presentation-0.2.40.md`.
 El test del manifiesto verifica tamaño y hash contra el artefacto real. La exclusión
 Vercel evita enviar entorno local, config, documentación o tests.
 
-Estado de preparación: no desplegado ni instalado. Publicar STABLE afectará al
-manifiesto compartido de los CoreS3 que consulten ese canal; cada instalación
+Estado 2026-10-01: publicado en STABLE; instalación física aún sin confirmar.
+La publicación actualiza el manifiesto compartido de los CoreS3 de ese canal; cada instalación
 requiere acción del operador. El nombre STABLE no acredita aceptación física
 completa ni OTA gestionado/autenticado. Las guardas rechazan versiones anteriores;
 volver el manifiesto a 0.2.13 no rebaja un equipo actualizado.
@@ -31,3 +31,17 @@ Base de reversión del servicio: despliegue público anterior
 `https://bomb-v2-ota-hlgd1ecea-johnosorios-projects.vercel.app`.
 No ejecutar rollback ni cambiar aliases como prueba. La confirmación automática
 de arranque no sustituye aceptación visual ni prueba física de rollback.
+
+## Evidencia de publicación
+
+Commit `b5ddb58` y tag `checkpoint/ota-0.2.40-release-2026-10-01`
+verificados en GitHub antes del despliegue. Tests backend 8/8.
+Despliegue `dpl_DvuHtiTjKpgxbqrtnQmcdcvCLjVk` READY, producción:
+`https://bomb-v2-ota-7fpd4ygev-johnosorios-projects.vercel.app`.
+Alias público `https://bomb-v2-ota-api.vercel.app`.
+GET público stable devuelve 0.2.40. Binario descargado desde el alias público:
+tamaño y SHA-256 anteriores, comparación byte a byte idéntica al candidato.
+GET `/api/health`: status ok. Paquete Vercel revisado: sin secretos, configuración
+privada ni migraciones. No se cambió hardware ni se realizó carga USB.
+Pendiente: operador inicia OTA y confirma reinicio con INSTALADA 0.2.40;
+COMPROBAR debe mostrar PUBLICADA 0.2.40 y MISMA VERSION.
