@@ -22,12 +22,12 @@ const revoke = { action: "revoke", device_id: device, request_id: "20000000-0000
 
 function snapshot(overrides = {}) {
   return { device_id: device, credential_id: credential, mac: identity.mac, device_key_sha256: identity.device_key_sha256,
-    license_id: license, revision: 0, status: "unlicensed", issued_at: null, not_before: null, expires_at: null,
+    credential_status: "active", license_id: license, revision: 0, status: "unlicensed", issued_at: null, not_before: null, expires_at: null,
     updated_by: user, updated_at: "2026-09-22T00:00:00.000Z", ...overrides };
 }
 const verifiedUser = () => ({ body: { id: user, is_anonymous: false } });
 const receipt = (command, current) => ({ body: { device_id: device, request_id: command.request_id,
-  action: command.action, snapshot: current } });
+  action: command.action, snapshot: current, receipt_version: 2 } });
 
 function fixture(replies = [], settings = env) {
   const calls = [];
@@ -209,4 +209,59 @@ test("GET query is exact and malformed upstream failures are sanitized", async (
     assert.deepEqual(result.body, { error });
     assert.ok(!JSON.stringify(result.body).includes("private"));
   }
+});
+
+
+const recovery = { action: "replace_credential", device_id: device, request_id: request,
+  expected_revision: 1, expected_credential_id: credential, reason: "lost", device_key_sha256: "cd".repeat(32) };
+const retired = { action: "revoke_credential", device_id: device, request_id: request,
+  expected_revision: 1, expected_credential_id: credential, reason: "compromised" };
+
+test("credential commands require exact fields, canonical digest and bounded reason/revision", async () => {
+  for (const body of [
+    { ...recovery, expected_credential_id: null }, { ...recovery, reason: "" },
+    { ...recovery, reason: "free text secret" }, { ...recovery, expected_revision: 1.5 },
+    { ...recovery, expected_revision: 4294967296 }, { ...recovery, device_key_sha256: "AB".repeat(32) },
+    { ...recovery, mac: identity.mac }, { ...recovery, credential_status: "active" },
+    { ...recovery, private_key: "forbidden" }, { ...retired, device_key_sha256: recovery.device_key_sha256 },
+    Object.fromEntries(Object.entries(recovery).filter(([k]) => k !== "expected_credential_id"))
+  ]) {
+    const f = fixture([verifiedUser()]);
+    assert.equal((await f.invoke({ body })).status, 400);
+    assert.equal(f.calls.length, 1);
+  }
+});
+
+test("credential recovery uses scoped admin RPC and validates the returned transition", async () => {
+  const replacementId = "40000000-0000-0000-0000-000000000002";
+  const replaced = snapshot({ credential_id: replacementId, device_key_sha256: recovery.device_key_sha256, revision: 2 });
+  const revokedKey = snapshot({ credential_status: "revoked", revision: 2 });
+  for (const [command, current] of [[recovery, replaced], [retired, revokedKey]]) {
+    const f = fixture([verifiedUser(), receipt(command, current)]);
+    const result = await f.invoke({ body: command });
+    assert.equal(result.status, 200);
+    assert.deepEqual(result.body.receipt.snapshot, current);
+    rpc(f.calls[1], "ota_admin_license", { p_device_id: device, p_request_id: request,
+      p_command: Object.fromEntries(Object.entries(command).filter(([k]) => !["device_id", "request_id"].includes(k))) });
+  }
+  for (const [command, current] of [
+    [recovery, { ...replaced, revision: 1 }], [recovery, { ...replaced, credential_id: credential }],
+    [recovery, { ...replaced, credential_status: "revoked" }], [recovery, { ...replaced, device_key_sha256: identity.device_key_sha256 }],
+    [retired, { ...revokedKey, credential_status: "active" }], [retired, { ...revokedKey, credential_id: replacementId }],
+    [retired, { ...revokedKey, credential_status: undefined }]
+  ]) {
+    const f = fixture([verifiedUser(), receipt(command, current)]);
+    assert.equal((await f.invoke({ body: command })).status, 503);
+  }
+});
+
+test("legacy receipts preserve missing credential status; current GET must have it", async () => {
+  const legacy = snapshot(); delete legacy.credential_status;
+  const oldReceipt = receipt(identity, legacy); oldReceipt.body.receipt_version = 1;
+  const f = fixture([verifiedUser(), oldReceipt]);
+  assert.deepEqual((await f.invoke()).body.receipt.snapshot, legacy);
+  const malformedNew = fixture([verifiedUser(), receipt(identity, legacy)]);
+  assert.equal((await malformedNew.invoke()).status, 503);
+  const current = fixture([verifiedUser(), { body: legacy }]);
+  assert.equal((await current.invoke({ method: "GET", query: { device_id: device } })).status, 503);
 });

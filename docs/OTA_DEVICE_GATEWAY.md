@@ -1,5 +1,9 @@
 # OTA-03.2b — prueba de posesión y entrega de licencia
 
+Nota de continuación (2026-09-30): [recuperación de credencial 03.2c](OTA_CREDENTIAL_RECOVERY.md)
+amplía este checkpoint con retiro/reemplazo autorizado, historial de claves y CAS.
+El estado y las cifras siguientes describen la validación original.
+
 2026-09-22. Implementación de backend **probada localmente** sobre `edf0475`.
 No migración remota, aprovisionamiento de secretos, promoción de producción ni
 carga de firmware. El endpoint está apagado por defecto. CoreS3 0.2.36 y

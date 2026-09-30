@@ -13,7 +13,7 @@ const challenge = { id: "30000000-0000-0000-0000-000000000003", realm: "producti
   device_key_sha256: "ab".repeat(32), mac: "02:00:00:00:00:01", client_nonce: "cd".repeat(32), nonce: "ef".repeat(32) };
 const granted = { device_id: challenge.device_id, credential_id: challenge.credential_id, mac: challenge.mac,
   device_key_sha256: challenge.device_key_sha256, license_id: "40000000-0000-0000-0000-000000000004",
-  revision: 2, status: "granted", issued_at: now - 60, not_before: now - 30, expires_at: now + 3_600 };
+  revision: 2, credential_status: "active", status: "granted", issued_at: now - 60, not_before: now - 30, expires_at: now + 3_600 };
 const expected = { device_id: challenge.device_id, credential_id: challenge.credential_id,
   device_key_sha256: challenge.device_key_sha256, mac: challenge.mac, realm: challenge.realm,
   challenge_id: challenge.id, client_nonce: challenge.client_nonce, nonce: challenge.nonce,
@@ -72,4 +72,18 @@ test("malformed headers, unsupported algorithms and wrong keyring curves are rej
   const p384 = generateKeyPairSync("ec", { namedCurve: "secp384r1" });
   rejected(() => check(response, { keys: new Map([["test-key", p384.publicKey]]) }));
   rejected(() => check(response, { keys: new Map([["test-key", signer.privateKey]]) }));
+});
+
+
+test("credential revocation cannot emit and recovered unlicensed state keeps its revision floor", () => {
+  const row = { ...granted, revision: 4, status: "unlicensed", issued_at: null, not_before: null, expires_at: null };
+  // Existing fixture helpers bind the same key, device and pending challenge.
+  rejected(() => emit({ ...row, credential_status: "revoked" }));
+  rejected(() => emit({ ...row, credential_status: undefined }));
+  const response = emit(row);
+  const result = check(response, { expected: { ...expected, minimum_revision: 4 } });
+  assert.equal(result.status.state, "unlicensed");
+  assert.equal(result.status.revision, 4);
+  assert.equal(result.license, null);
+  rejected(() => check(response, { expected: { ...expected, minimum_revision: 5 } }));
 });

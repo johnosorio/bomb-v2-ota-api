@@ -10,12 +10,18 @@ Evidencia previa: 59/59 tests Node y PostgreSQL 17.11 local, incluidos HTTP,
 rol restringido, firma, concurrencia, revocación, rollback y reinicio.
 No equivale a validación Supabase/TLS/Preview ni aceptación física.
 
-## Continuación
+## Continuación actualizada — 2026-09-30
 
-1. Completar recuperación, revocación y reemplazo autorizado de credencial propia;
-   la revocación de concesión ya implementada no sustituye revocar una clave.
+El incremento [03.2c](OTA_CREDENTIAL_RECOVERY.md) añade recuperación/revocación/
+reemplazo administrativo local y sus pruebas. No equivale a recuperación física
+en CoreS3 ni validación remota. El checkpoint/tag anterior se conserva como base.
+
+
+1. Validar el flujo completo en Preview y equipo: la API/DB local ya contempla
+   revocar/reemplazar credencial; quedan provisión, confirmación física de huella,
+   almacenamiento durable y UI. La revocación de clave no retira licencias offline ya emitidas.
 2. Con autorización separada: revisar/aplicar las migraciones pendientes
-   `20260922000100` y `20260922000200`; provisionar administrador humano y
+   `20260922000100`, `20260922000200` y `20260930000100`, en ese orden; provisionar administrador humano y
    LOGIN/contraseña del rol gateway, firmante y configuración segura en development.
    Validar Auth/PostgREST, TLS/pooler, permisos efectivos y reintentos en Preview.
    Sólo consta aplicada remotamente `20260921000100`; no asumir DDL por un push.

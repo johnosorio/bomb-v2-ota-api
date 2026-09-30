@@ -1,5 +1,9 @@
 # OTA-03.2a — administración persistente de licencias
 
+Nota de continuación (2026-09-30): [recuperación de credencial 03.2c](OTA_CREDENTIAL_RECOVERY.md)
+amplía este checkpoint con retiro/reemplazo autorizado, historial de claves y CAS.
+El estado y las cifras siguientes describen la validación original.
+
 Nota posterior: el [gateway 03.2b](OTA_DEVICE_GATEWAY.md) ya está implementado
 y validado localmente. Este documento conserva el alcance administrativo;
 ninguna de las dos migraciones nuevas se ha aplicado remotamente.

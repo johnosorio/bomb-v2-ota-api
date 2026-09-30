@@ -6,6 +6,7 @@ import { mkdtemp, readdir, realpath } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
+import { checkCredentialRecovery } from "./check-credential-recovery.mjs";
 import { checkDeviceGateway } from "./check-device-gateway.mjs";
 
 const exec = promisify(execFile);
@@ -39,7 +40,9 @@ try {
   await startCluster();
   await file("test/sql/bootstrap.sql");
   for (const name of (await readdir(join(root, "supabase/migrations"))).filter((name) => name.endsWith(".sql")).sort()) {
+    if (name === "20260930000100_ota_credential_recovery.sql") await file("test/sql/credential-upgrade-before.sql");
     await file(`supabase/migrations/${name}`);
+    if (name === "20260930000100_ota_credential_recovery.sql") await file("test/sql/credential-upgrade-after.sql");
   }
   const result = await file("test/sql/ota-foundation.sql");
   process.stdout.write(result.stdout);
@@ -85,10 +88,12 @@ try {
   const beforeLicenseRestart = await licenseState();
   assert.match(beforeLicenseRestart, /^2\|(granted|revoked)\|3$/);
   const checkGatewayAfterRestart = await checkDeviceGateway(temp);
+  const checkCredentialsAfterRestart = await checkCredentialRecovery(temp);
   // Server restart as well as independent connections must retain committed data.
   await run("pg_ctl", ["-D", data, "-w", "stop", "-m", "fast"]);
   await startCluster();
   await checkGatewayAfterRestart();
+  await checkCredentialsAfterRestart();
   const afterRestart = await sql(identity + "select count(*) from public.ota_devices;");
   assert.equal(afterRestart.stdout.trim().split("\n").at(-1), "2", "RLS-visible inventory survives DB restart");
   assert.equal(await licenseState(), beforeLicenseRestart, "license revision/state/receipts survive restart");
