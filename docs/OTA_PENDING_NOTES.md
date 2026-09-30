@@ -13,31 +13,35 @@ No equivale a validación Supabase/TLS/Preview ni aceptación física.
 ## Continuación actualizada — 2026-09-30
 
 El incremento [03.2c](OTA_CREDENTIAL_RECOVERY.md) añade recuperación/revocación/
-reemplazo administrativo local y sus pruebas. No equivale a recuperación física
-en CoreS3 ni validación remota. El checkpoint/tag anterior se conserva como base.
+reemplazo administrativo y sus pruebas. Su checkpoint original era local; la
+validación remota posterior se recoge a continuación. Recuperación física CoreS3
+sigue pendiente. El checkpoint/tag anterior se conserva como base.
 
 
-1. Validar el flujo completo en Preview y equipo: la API/DB local ya contempla
-   revocar/reemplazar credencial; quedan provisión, confirmación física de huella,
-   almacenamiento durable y UI. La revocación de clave no retira licencias offline ya emitidas.
-2. Con autorización separada: revisar/aplicar las migraciones pendientes
-   `20260922000100`, `20260922000200` y `20260930000100`, en ese orden; provisionar administrador humano y
-   LOGIN/contraseña del rol gateway, firmante y configuración segura en development.
-   Validar Auth/PostgREST, TLS/pooler, permisos efectivos y reintentos en Preview.
-   Sólo consta aplicada remotamente `20260921000100`; no asumir DDL por un push.
+1. API/DB de credenciales validadas en Development/Preview el 2026-09-30:
+   [evidencia real](OTA_CREDENTIAL_PREVIEW_VALIDATION.md), código `1f12037`.
+   Las migraciones `20260922000100`, `20260922000200` y `20260930000100` constan
+   aplicadas junto a foundation. Rol dedicado LOGIN/TLS y firmante de prueba sólo
+   en Previews protegidos. Inventario 24/24, credenciales 24/24, rutas 6/6 y
+   persistencia entre dos despliegues comprobada; fixture sintético cerrado.
+2. Falta administrador humano y vistas del portal, provisión/confirmación física
+   de huella, almacenamiento durable y UI CoreS3. Las cuentas sintéticas quedaron
+   baneadas y sin membresías; no son cuentas para operar el portal.
 3. Cerrar límites perimetrales/IP, retención de retos/auditoría, rotación de claves
-   de firma y recuperación operativa antes de exposición pública.
-4. Integrar después CoreS3: claves/verificador, SD cifrada/journal, reloj fiable,
+   de firma y recuperación operativa antes de exposición pública. La protección
+   de Preview no es el acceso final para dispositivos físicos.
+4. Integrar CoreS3: claves/verificador, SD cifrada/journal, reloj fiable,
    cliente no bloqueante, UI/guardas y aceptación física LIC-01…06.
 5. Continuar artefactos/canales firmados, versionado, asignación/recibos, vistas
    administrativas y actualización/rollback. OTA completo sigue pendiente.
 
-Gateway desactivado por defecto; rol NOLOGIN hasta aprovisionamiento autorizado.
-No usar service-role, postgres o JWT humano como credencial del equipo.
-No publicar secretos ni ejecutar migración/despliegue/flash como parte del cierre.
-Un push puede generar Preview automático; no habilita flags ni prueba funcionalidad.
-CoreS3 0.2.36 y Bomb01 B01-GAME-13 no cambian. Ante vencimiento/revocación conocida,
-conservar la ronda activa y bloquear nuevas partidas/rondas, sin STOP a Bomb01.
+Checkpoint pareado: `checkpoint/ota-03-preview-2026-09-30`.
+Flags apagadas por defecto en código; gateway sólo habilitado en el Preview
+autorizado. No usar service-role, postgres o JWT humano como credencial del equipo.
+CoreS3 0.2.36 y Bomb01 B01-GAME-13 conservan sus versiones estables verificadas.
+Ante vencimiento/revocación conocida, conservar la ronda activa y bloquear nuevas
+partidas/rondas, sin STOP a Bomb01. No hubo carga, promoción STABLE ni despliegue
+de producción. Una carga posterior sigue requiriendo su autorización específica.
 
 [Notas completas y decisiones del operador](../../bomb-v2/OTA_PENDIENTES.md),
 [contrato gateway](OTA_DEVICE_GATEWAY.md),

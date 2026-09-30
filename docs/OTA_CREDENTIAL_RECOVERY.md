@@ -1,5 +1,11 @@
 # OTA-03.2c — recuperación de credencial de dispositivo
 
+Actualización 2026-09-30: API/DB de este contrato ya validadas en
+[Development/Preview real](OTA_CREDENTIAL_PREVIEW_VALIDATION.md), con migraciones
+aplicadas, rol propio/TLS, Auth y dispositivo sintético. CoreS3 y portal visual
+siguen pendientes. Las cifras y afirmaciones de alcance local de abajo describen
+la implementación original; el enlace recoge el estado remoto posterior.
+
 Incremento local desde `e276937`, 2026-09-30. Migración forward
 `20260930000100_ota_credential_recovery.sql`, posterior a foundation, administración
 y gateway. No aprovisiona LOGIN, secretos ni habilita flags. Validación local

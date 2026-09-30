@@ -3,7 +3,7 @@
 Servicio mínimo para probar el contrato de actualización remota del Bomb
 Manager en Vercel.
 
-## Fase 1 OTA: incremento local en curso
+## Fase 1 OTA: Development/Preview en curso
 
 Checkpoint y pendientes para retomar: [notas de cierre](docs/OTA_PENDING_NOTES.md).
 
@@ -28,24 +28,28 @@ No sustituye las rutas demo de abajo ni autentica todavía al CoreS3.
 Auth/PostgREST ya se validaron en Preview; faltan identidad CoreS3, releases,
 despliegues, recibos, UI y pruebas físicas. No es un ciclo OTA cerrado.
 
-## OTA-03.2b: gateway de dispositivo, sólo validado localmente
+## OTA-03.2b/c: gateway y recuperación de dispositivo
 
 `POST /api/ota/device-license`: prueba P-256, descubrimiento de identidad inicial,
 reto de un solo uso y licencia/estado firmados desde la concesión actual.
 [Protocolo, configuración segura y evidencia](docs/OTA_DEVICE_GATEWAY.md).
 `OTA_DEVICE_GATEWAY_ENABLED` apagado por defecto; nuevo rol SQL sin LOGIN hasta
-aprovisionamiento autorizado. Migración `20260922000200` aún no aplicada remotamente.
+aprovisionamiento autorizado. Migraciones hasta `20260930000100` aplicadas en
+Development; [validación real de credenciales](docs/OTA_CREDENTIAL_PREVIEW_VALIDATION.md):
+24/24 pruebas, retiro/reemplazo de claves, estado firmado y persistencia entre
+Previews protegidos. Rol LOGIN y firmante específicos de prueba, sin producción.
 Pruebas incluyen PostgreSQL real, revocación concurrente y reinicio. No se han
 integrado CoreS3/SD/reloj ni habilitado activación física. Secretos no incluidos.
 
-## OTA-03.2a: administración de licencias, sólo validado localmente
+## OTA-03.2a: administración de licencias
 
 `GET/POST /api/ota/licenses` añade aprobación administrativa de MAC/huella,
 concesión/renovación y revocación con revisiones y auditoría transaccional.
 Requiere también `OTA_LICENSE_ADMIN_ENABLED=true` (apagado por defecto).
 [Contrato, estados, permisos, reintentos y validación](docs/OTA_LICENSE_ADMINISTRATION.md).
-Migración `20260922000100` **no aplicada remotamente**, API sin validación remota
-de licencias; el push puede generar Preview automático, no habilita sus flags.
+Migración `20260922000100` aplicada en Development y API validada con Auth real
+en Preview protegido. Las cuentas sintéticas se cierran al terminar; administrador
+humano y vistas de portal siguen pendientes. Las flags no se habilitan por un push.
 Esta ruta administrativa no acredita posesión ni emite documentos; el gateway
 03.2b está implementado aparte y CoreS3 sigue pendiente. Los recibos históricos
 no son licencias válidas.
@@ -59,8 +63,8 @@ issuer, audience y tipo fijos, sin descargar claves indicadas por el documento.
 Contrato compartido: [OTA_03_CONTRATO.md](../bomb-v2/OTA_03_CONTRATO.md).
 
 No es un endpoint de emisión ni autoriza administradores/dispositivos por sí
-solo. No se conecta todavía a DB, revocación, CoreS3 o SD; no carga claves desde
-variables de entorno y no altera las rutas demo. El documento está firmado,
+solo. El gateway conecta este componente puro con la concesión DB y su firmante
+servidor; CoreS3 y SD siguen pendientes. El documento está firmado,
 **no cifrado**: la protección AES-GCM de SD sigue pendiente. La futura emisión
 debe partir de una concesión autorizada y versionada durablemente en DB.
 

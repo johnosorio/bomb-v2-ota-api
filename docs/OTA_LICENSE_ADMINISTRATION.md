@@ -1,5 +1,11 @@
 # OTA-03.2a — administración persistente de licencias
 
+Actualización 2026-09-30: API/DB de este contrato ya validadas en
+[Development/Preview real](OTA_CREDENTIAL_PREVIEW_VALIDATION.md), con migraciones
+aplicadas, rol propio/TLS, Auth y dispositivo sintético. CoreS3 y portal visual
+siguen pendientes. Las cifras y afirmaciones de alcance local de abajo describen
+la implementación original; el enlace recoge el estado remoto posterior.
+
 Nota de continuación (2026-09-30): [recuperación de credencial 03.2c](OTA_CREDENTIAL_RECOVERY.md)
 amplía este checkpoint con retiro/reemplazo autorizado, historial de claves y CAS.
 El estado y las cifras siguientes describen la validación original.

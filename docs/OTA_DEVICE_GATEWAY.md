@@ -1,5 +1,11 @@
 # OTA-03.2b — prueba de posesión y entrega de licencia
 
+Actualización 2026-09-30: API/DB de este contrato ya validadas en
+[Development/Preview real](OTA_CREDENTIAL_PREVIEW_VALIDATION.md), con migraciones
+aplicadas, rol propio/TLS, Auth y dispositivo sintético. CoreS3 y portal visual
+siguen pendientes. Las cifras y afirmaciones de alcance local de abajo describen
+la implementación original; el enlace recoge el estado remoto posterior.
+
 Nota de continuación (2026-09-30): [recuperación de credencial 03.2c](OTA_CREDENTIAL_RECOVERY.md)
 amplía este checkpoint con retiro/reemplazo autorizado, historial de claves y CAS.
 El estado y las cifras siguientes describen la validación original.
@@ -134,7 +140,9 @@ la garantía es estado en ese punto de serialización, no revocación instantán
 
 Cada conexión comprueba session_user=current_user=rol esperado, atributos,
 membresías, ausencia de CREATE en public y USAGE en ota_private, acceso a tablas public/ota_private y
-ejecución de RPC OTA/SECURITY DEFINER públicos distintos de los dos permitidos.
+ejecución de RPC OTA/SECURITY DEFINER públicos invocables distintos de los dos permitidos.
+Se excluyen del control los event_trigger no OTA, que no son RPC SQL; todas
+las rutinas ota_* adicionales siguen bloqueadas, con cualquier tipo de retorno.
 Una concesión accidental de privilegios falla cerrada. Límites locales de
 statement 4 s, lock 2 s, idle-in-transaction 5 s; conexión 3 s/query 5 s. Conexión
 por operación, cerrada al terminar; Supavisor puede dar pooling externo, sin
