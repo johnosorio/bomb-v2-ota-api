@@ -1,4 +1,6 @@
 import test from "node:test";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 import stable from "../api/releases/stable.js";
 import beta from "../api/releases/beta.js";
@@ -31,9 +33,13 @@ test("stable release manifest resolves relative firmware URL", () => {
   assert.equal(result.statusCode, 200);
   assert.equal(result.body.channel, "stable");
   assert.equal(result.body.firmware_url,
-    "https://ota.example.test/firmware/bomb-manager-0.2.13.bin");
+    "https://ota.example.test/firmware/bomb-manager-0.2.40.bin");
   assert.equal(result.body.sha256.length, 64);
-  assert.equal(result.body.size, 1518080);
+  assert.equal(result.body.version, "0.2.40");
+  const artifact = readFileSync(new URL("../public/firmware/bomb-manager-0.2.40.bin", import.meta.url));
+  assert.equal(result.body.size, 1447824);
+  assert.equal(result.body.size, artifact.length);
+  assert.equal(result.body.sha256, createHash("sha256").update(artifact).digest("hex"));
 });
 
 test("beta and dev release handlers load their JSON fixtures", () => {

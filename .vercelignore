@@ -1,0 +1,12 @@
+/.git/
+/.vercel/
+/.env
+/.env.*
+/AGENTS.md
+/README.md
+/docs/
+/test/
+/scripts/
+/supabase/
+/config/
+/OTA_RELEASE_0.2.40.md
