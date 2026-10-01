@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "product": "bomb-manager",
+  "model": "cores3",
+  "version": "0.2.44",
+  "channel": "stable",
+  "compiled_channel": "stable",
+  "environment": "core_s3",
+  "source": {
+    "commit": "4e4265a83d84d315e8904c6f2920b815120bf6b9",
+    "tag": "checkpoint/ota-pin-source-0.2.44-2026-10-01"
+  },
+  "backend": {
+    "base_commit": "c0a0b9f9e8504a4244cf67682c4ab6344d317801"
+  },
+  "artifact": {
+    "sha256": "9fe689993eaf65dd3e9761206a3af43559bad9d1c19a7a37205a6a35dc6d363e",
+    "size": 1484896,
+    "path": "../public/firmware/bomb-manager-0.2.44.bin"
+  },
+  "provenance": {
+    "path": "stable-0.2.44.provenance.json",
+    "sha256": "829592ffd3baf6e75f4cda544ecb94d6273860a0662aa952f9fa7af8e161d77d"
+  },
+  "compatibility": {
+    "catalog_schema_version": 1,
+    "partition_sha256": "bd0f7954aca2ef7d925ee21aaa1f3dc8822d1d6ce5cbbd26a135e5886bfff6ce"
+  },
+  "build": {
+    "pin_recovery": false,
+    "radio_provisioned": false
+  },
+  "evidence": {
+    "build": "hardware/validation/pin-recovery-0.2.44.md",
+    "tests": "PIN_RECOVERY_CONTRACT.md"
+  }
+}

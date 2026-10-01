@@ -16,8 +16,10 @@ export function createHandler(dependencies = {}) {
       if(req.method==='GET')return adminHandler(req,res);
       if(req.method!=='POST')return res.status(405).json({error:'METHOD_NOT_ALLOWED'});
       const body=jsonBody(req);
-      if(['approve','reject'].includes(body?.action))return adminHandler({...req,body},res);
-      return deviceHandler({...req,body},res);
+      // Preserve Node/Vercel IncomingMessage getters such as headers and auth.
+      // Spreading req drops inherited properties needed by downstream handlers.
+      if(['approve','reject'].includes(body?.action))return adminHandler(req,res);
+      return deviceHandler(req,res);
     } catch(error) {return failure(error,res);}
   };
 }
