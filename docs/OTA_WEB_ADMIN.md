@@ -136,5 +136,18 @@ lectura de inventario/licencia y concesión confirmada; no activación en firmwa
 
 Validación del ajuste: 25/25 pruebas del portal, revisión independiente sin
 hallazgos; Chrome local con datos sintéticos, vistas de escritorio y móvil
-390px sin desbordamiento horizontal. Publicación del ajuste pendiente en este
-corte; se registrará después de verificar el candidato y alias público.
+390px sin desbordamiento horizontal. Suite canónica completa: **142/142**.
+
+Ajuste publicado desde `368bc8b5a58d415d1b7fcc69279dd8e4a8dc1021`, checkpoint
+`checkpoint/web-devices-2026-10-01`, deployment
+`dpl_C6ynWNtDm4RVYTMoGEfsibpjz1zi`. Alias público y los 22 archivos OTA
+verificados el 2026-10-01 a las 20:53:31 UTC. HTML/JS/CSS idénticos al commit,
+CSP/no-store y controles de sesión confirmados en candidato y alias público.
+Estado durable: `.ota-release/backend-368bc8b5a58d415d1b7fcc69279dd8e4a8dc1021/`.
+Evidencias saneadas y capturas sintéticas: `/private/tmp/bomb-web-ux/`.
+
+Delegación acotada: inventario de firmware por bomb_explorer (Luna, low),
+pruebas por bomb_backend (Terra, medium) y revisión por bomb_reviewer (Terra,
+high). Coordinador integró, verificó la suite, concedió mediante sesión humana
+y publicó. La revisión no detectó regresiones; la comprobación visual ajustó
+alineación de acciones y separación de la ruta de regreso.
