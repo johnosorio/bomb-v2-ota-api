@@ -98,9 +98,30 @@ request/list, cancel and reject without PIN change, approve then physical touch,
 new/repeated PIN, return to login, reboot with new PIN, and preservation of
 identity, Wi-Fi, license, SD and game state. The successful guided recovery is
 operator-confirmed below; the full negative/reboot/preservation matrix is not.
-Wi-Fi must already be connected; recovery cannot currently configure a new
-network from the locked screen. Forgotten portal-password self-service is also
-outside this initial invitation/login flow.
+These limits describe installed 0.2.44: Wi-Fi must already be connected, and
+portal-password recovery was outside its initial invitation/login delivery.
+The local follow-up below is not deployed or physically accepted yet.
+
+## Local access-recovery follow-up — 2026-10-01
+
+The portal now offers Forgot password, calls Supabase Auth `/recover` with only
+the email and publishable key, and uses the exact HTTPS same-origin `/admin/`
+return URL. That exact URL must be allowlisted in Auth Redirect URLs for each
+intended deployment; no remote Auth setting was changed by this increment.
+A verified recovery link opens password replacement, then returns to fresh
+login. It does not grant device scope or approve PIN recovery. Tokens remain
+in memory, are removed from the URL immediately and are cleared on error or
+cancel. Invalid/expired links can request a new email. The existing invitation
+flow remains available.
+
+Eight VM tests cover request/back/retry, invalid and anonymous users, expired
+links, password-update 401, cancellation and invitation compatibility. These
+use synthetic Auth and do not prove email delivery or a real Auth callback.
+Firmware adds a network-only modal within the locked PIN recovery form; its
+review and host evidence are in the firmware plan. Installed 0.2.44 is unchanged.
+
+References: [password recovery](https://supabase.com/docs/guides/auth/passwords)
+and [redirect allowlist](https://supabase.com/docs/guides/auth/redirect-urls).
 
 
 ## Authorized activation evidence — 2026-10-01

@@ -3,11 +3,17 @@ import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { inspectCandidate, prepareRelease, releasePaths, verifyRemote } from './release-artifact.mjs';
+import { immutableOtaInventory, verifyBackendRemote } from './release-backend.mjs';
 
 const digest = b => createHash('sha256').update(b).digest('hex');
 const json = p => JSON.parse(fs.readFileSync(p, 'utf8'));
 const assert = (ok, message) => { if (!ok) throw new Error(message); };
 const oid = /^[a-f0-9]{40}$/;
+const defaultEnvironment = [
+  'OTA_ADMIN_ENABLED', 'OTA_DEVICE_REALM', 'OTA_GATEWAY_DATABASE_CA',
+  'OTA_GATEWAY_DATABASE_URL', 'OTA_PIN_RECOVERY_ENABLED',
+  'SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_URL'
+];
 function noSymlinks(file) {
   const absolute = path.resolve(file), parts = absolute.split(path.sep).filter(Boolean);
   let current = path.parse(absolute).root;
@@ -40,24 +46,47 @@ export function serviceFile(file) {
     /^(package(?:-lock)?\.json|vercel\.json|release(?:-(?:beta|dev))?\.json)$/.test(file);
 }
 export function checkTarget(t) {
-  assert(t && Object.keys(t).sort().join(',') === 'base_ref,previous_deployment,project_id,public_url,team_id', 'Invalid target fields');
+  assert(t && Object.keys(t).every(key => ['base_ref', 'previous_deployment', 'project_id', 'public_url', 'team_id', 'required_env'].includes(key)) &&
+    ['base_ref', 'previous_deployment', 'project_id', 'public_url', 'team_id'].every(key => Object.hasOwn(t, key)), 'Invalid target fields');
   assert(/^refs\/tags\/[A-Za-z0-9][A-Za-z0-9_./-]{0,180}$/.test(t.base_ref) && !t.base_ref.includes('..') && !t.base_ref.endsWith('/'), 'Explicit immutable public base tag required');
   assert(/^prj_[a-zA-Z0-9]+$/.test(t.project_id) && /^team_[a-zA-Z0-9]+$/.test(t.team_id), 'Explicit Vercel project/team required');
   assert(/^dpl_[a-zA-Z0-9]+$/.test(t.previous_deployment), 'Previous deployment required');
   const u = new URL(t.public_url);
   assert(u.protocol === 'https:' && !u.username && !u.password && u.pathname === '/' && !u.search && !u.hash, 'Public URL must be an HTTPS origin');
+  if (Object.hasOwn(t, 'required_env')) {
+    assert(Array.isArray(t.required_env) && t.required_env.length === defaultEnvironment.length &&
+      [...t.required_env].sort().join(',') === defaultEnvironment.join(','), 'required_env must be the closed portal environment contract');
+  }
   return t;
+}
+export function parseEnvironmentNames(output) {
+  assert(output && typeof output === 'object' && Array.isArray(output.envs), 'Environment metadata has unexpected format');
+  const names = new Set();
+  for (const environment of output.envs) {
+    assert(environment && typeof environment === 'object' && /^[A-Za-z_][A-Za-z0-9_]{0,255}$/.test(environment.key), 'Environment metadata has unexpected format');
+    const targets = environment.target === undefined ? [] : Array.isArray(environment.target) ? environment.target : [environment.target];
+    assert(targets.every(target => ['development', 'preview', 'production'].includes(target)), 'Environment metadata has unexpected format');
+    if (!targets.includes('production')) continue;
+    assert(!names.has(environment.key), 'Environment metadata has duplicate production names');
+    names.add(environment.key);
+  }
+  return names;
 }
 
 export class ReleaseWorkflow {
-  constructor({ repo, firmwareRepo, vercel = 'vercel', command = run, verify = verifyRemote }) {
+  constructor({ repo, firmwareRepo, vercel = 'vercel', command = run, verify = verifyRemote, candidateBypass = process.env.BOMB_OTA_CANDIDATE_BYPASS, fetchImpl = fetch }) {
     this.repo = fs.realpathSync(repo); this.firmwareRepo = firmwareRepo && fs.realpathSync(firmwareRepo);
-    this.command = command; this.vercel = vercel; this.verify = verify;
+    this.command = (file, args, options = {}) => {
+      const env = { ...process.env, ...options.env };
+      delete env.BOMB_OTA_CANDIDATE_BYPASS;
+      return command(file, args, { ...options, env });
+    };
+    this.vercel = vercel; this.verify = verify; this.candidateBypass = candidateBypass; this.fetchImpl = fetchImpl;
     this.root = path.join(this.repo, '.ota-release');
   }
   git(args, options = {}) { return this.command('git', args, { cwd: this.repo, ...options }).toString().trim(); }
   file(id) {
-    assert(/^(stable|beta|dev)-\d+\.\d+\.\d+$/.test(id), 'Invalid release id');
+    assert(/^(?:(stable|beta|dev)-\d+\.\d+\.\d+|backend-[a-f0-9]{40})$/.test(id), 'Invalid release id');
     const file = path.join(this.root, id, 'state.json'); noSymlinks(file); return file;
   }
   save(s) { s.updated_at = new Date().toISOString(); atomicJson(this.file(s.id), s); }
@@ -88,6 +117,72 @@ export class ReleaseWorkflow {
     // Refuse silently omitting service assets outside our narrow packaging contract.
     assert(!all.some(e => /^(api|lib|public)\//.test(e.file) && !serviceFile(e.file)), 'Service contains unsupported assets; review packaging contract');
     return included;
+  }
+  baseCommit(s) { return s.mode === 'backend' ? s.base_commit : s.descriptor.backend.base_commit; }
+  async planBackend(commit, sourceTag, target) {
+    checkTarget(target);
+    assert(oid.test(commit || ''), 'Exact backend source commit required');
+    assert(/^[A-Za-z0-9][A-Za-z0-9_./-]{0,180}$/.test(sourceTag || '') &&
+      !sourceTag.includes('..') && !sourceTag.endsWith('/'), 'Immutable backend source tag required');
+    this.git(['check-ref-format', `refs/tags/${sourceTag}`]);
+    assert(this.git(['rev-parse', `${commit}^{commit}`]) === commit, 'Backend source commit unavailable');
+    assert(this.git(['rev-parse', `refs/tags/${sourceTag}^{commit}`]) === commit, 'Backend source tag mismatch');
+    const base = this.git(['rev-parse', `${target.base_ref}^{commit}`]);
+    assert(oid.test(base), 'Backend public base unavailable');
+    this.git(['merge-base', '--is-ancestor', base, commit]);
+    const ota_inventory = immutableOtaInventory(this, base, commit);
+    assert(!ota_inventory.some(e => /^release[^/]*\.json$/.test(e.path) &&
+      !/^release(?:-(?:beta|dev))?\.json$/.test(e.path)), 'Unsupported OTA manifest: review the public verification contract');
+    const service_package = this.inventory(commit);
+    return { id: `backend-${commit}`, mode: 'backend', source_commit: commit,
+      source_tag: sourceTag, base_commit: base, target, ota_inventory, service_package,
+      notice: 'Backend-only: existing OTA manifests and firmware bytes are unchanged.' };
+  }
+  async prepareBackend(commit, sourceTag, target) {
+    const p = await this.planBackend(commit, sourceTag, target);
+    return this.locked(p.id, async () => {
+      if (fs.existsSync(this.file(p.id))) {
+        const old = this.load(p.id);
+        assert(old.input_hash === digest(JSON.stringify(p)), 'Existing release has different inputs');
+        return old;
+      }
+      const s = { ...p, schema_version: 1, input_hash: digest(JSON.stringify(p)), phase: 'prepared',
+        branch: `release/backend-${commit}`, tag: `backend/${commit}`, nonce: randomUUID(), installation: [] };
+      this.save(s); return s;
+    });
+  }
+  assertBackendAssets(s) {
+    if (s.mode !== 'backend') return;
+    const inventory = immutableOtaInventory(this, s.base_commit, s.source_commit);
+    assert(JSON.stringify(inventory) === JSON.stringify(s.ota_inventory), 'Backend OTA inventory changed');
+    assert(!s.commit || s.commit === s.source_commit, 'Backend release must use exact source commit');
+    assert(JSON.stringify(this.inventory(s.source_commit)) === JSON.stringify(s.service_package), 'Backend service inventory changed');
+  }
+  assertSourceTag(s) {
+    const ref = `refs/tags/${s.source_tag}`;
+    const rows = this.command('git', ['ls-remote', 'origin', ref, `${ref}^{}`], { cwd: this.repo })
+      .toString().trim().split('\n').filter(Boolean).map(row => row.split(/\s+/));
+    const resolved = rows.find(row => row[1] === `${ref}^{}`)?.[0] || rows.find(row => row[1] === ref)?.[0];
+    assert(resolved === s.source_commit, 'Backend source tag is not verified remotely');
+  }
+  async gitPublishBackend(s) {
+    this.assertBackendAssets(s);
+    if (s.deploy_intent) { this.assertRemote(s); return s; }
+    this.assertBaseRef(s); this.assertBase(s); this.assertSourceTag(s);
+    s.commit = s.source_commit;
+    const refs = [`refs/heads/${s.branch}`, `refs/tags/${s.tag}`];
+    // Check all refs before creating either, and never move an existing ref.
+    const previous = refs.map(ref => {
+      let local; try { local = this.git(['rev-parse', '--verify', ref]); } catch { local = null; }
+      const remote = this.remoteRef(ref);
+      assert((!local || local === s.commit) && (!remote || remote === s.commit), 'Backend release ref conflicts');
+      return local;
+    });
+    this.save(s);
+    refs.forEach((ref, i) => { if (!previous[i]) this.git(['update-ref', ref, s.commit, '0'.repeat(40)]); });
+    s.phase = 'git-pending'; this.save(s);
+    this.git(['push', '--atomic', 'origin', ...refs.map(ref => `${ref}:${ref}`)], { timeout: 120000 });
+    this.assertRemote(s); s.phase = 'git-verified'; this.save(s); return s;
   }
   async plan(descriptorPath, target) {
     checkTarget(target);
@@ -138,11 +233,12 @@ export class ReleaseWorkflow {
     const out = this.command('git', ['ls-remote', 'origin', ref, `${ref}^{}`], { cwd: this.repo }).toString();
     const rows = out.trim().split('\n').filter(Boolean).map(l => l.split(/\s+/));
     const hash = rows.find(r => r[1] === `${ref}^{}`)?.[0] || rows.find(r => r[1] === ref)?.[0];
-    assert(hash === s.descriptor.backend.base_commit, 'Public base tag is not verified remotely');
+    assert(hash === this.baseCommit(s), 'Public base tag is not verified remotely');
   }
   async gitPublish(id) {
     return this.locked(id, async () => {
       const s = this.load(id), dir = path.dirname(this.file(id));
+      if (s.mode === 'backend') return this.gitPublishBackend(s);
       await inspectCandidate(path.join(dir, 'stage', s.paths.descriptor));
       if (s.deploy_intent) { this.assertRemote(s); return s; }
       this.assertBaseRef(s);
@@ -202,7 +298,7 @@ export class ReleaseWorkflow {
     const d = this.inspect(s, new URL(s.target.public_url).hostname);
     assert(d.projectId === s.target.project_id && d.id === s.target.previous_deployment, 'Public deployment changed; prepare a new reviewed base/target');
     const commit = d.meta?.bombCommit || d.meta?.githubCommitSha || d.meta?.gitCommitSha || d.gitSource?.sha;
-    assert(commit === s.descriptor.backend.base_commit, 'Deployment provenance does not confirm the selected backend base');
+    assert(commit === this.baseCommit(s), 'Deployment provenance does not confirm the selected backend base');
   }
   acquire(s) {
     const ref = `refs/tags/ota-lock-${s.target.project_id}`;
@@ -222,6 +318,7 @@ export class ReleaseWorkflow {
     if (observed) this.git(['push', `--force-with-lease=${ref}:${s.lock_commit}`, 'origin', `:${ref}`]);
   }
   package(s) {
+    this.assertBackendAssets(s);
     const dir = path.join(path.dirname(this.file(s.id)), 'package');
     const files = this.inventory(s.commit);
     if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true });
@@ -235,11 +332,51 @@ export class ReleaseWorkflow {
     fs.writeFileSync(path.join(dir, '.vercelignore'), '/.vercel/\n');
     s.package = files; this.save(s); return dir;
   }
+  requiredEnvironment(s) {
+    return s.target.required_env || defaultEnvironment;
+  }
+  assertEnvironment(s) {
+    try {
+      const required = this.requiredEnvironment(s);
+      const names = parseEnvironmentNames(this.api(s, `/v10/projects/${encodeURIComponent(s.target.project_id)}/env?decrypt=false`));
+      assert(required.every(name => names.has(name)), 'Missing environment');
+    } catch {
+      // Even malformed provider JSON can contain values; never echo it.
+      throw new Error('Required production environment is incomplete or metadata is unavailable');
+    }
+  }
+  candidateFetch(s) {
+    if (!this.candidateBypass) return undefined;
+    assert(typeof this.candidateBypass === 'string' && /^[\x21-\x7e]{1,1024}$/.test(this.candidateBypass), 'Candidate bypass configuration invalid');
+    const origin = new URL(s.deployment.url).origin;
+    return (url, options = {}) => {
+      const target = new URL(url);
+      assert(target.protocol === 'https:' && target.origin === origin, 'Candidate verification URL is not the exact deployment origin');
+      const headers = new Headers(options.headers);
+      headers.set('x-vercel-protection-bypass', this.candidateBypass);
+      return this.fetchImpl(target, { ...options, headers, redirect: 'error' });
+    };
+  }
+  async verifyCandidateRemote(s) {
+    try {
+      await this.verifyRelease(s, s.deployment.url, { fetchImpl: this.candidateFetch(s) });
+    } catch {
+      throw new Error('Candidate verification failed');
+    }
+  }
+  async verifyRelease(s, origin, options) {
+    if (s.mode !== 'backend') return options === undefined ? this.verify(origin, s.descriptor) : this.verify(origin, s.descriptor, options);
+    this.assertBackendAssets(s);
+    const manifests = s.ota_inventory.filter(entry => /^release(?:-(?:beta|dev))?\.json$/.test(entry.path))
+      .map(entry => ({ path: entry.path, body: JSON.parse(this.object(s.source_commit, entry.path).toString()) }));
+    const binaries = s.ota_inventory.filter(entry => entry.path.startsWith('public/firmware/'));
+    return verifyBackendRemote(origin, manifests, binaries, options);
+  }
   async deploy(id) {
     return this.locked(id, async () => {
-      const s = this.load(id); this.assertRemote(s);
+      const s = this.load(id); this.assertRemote(s); this.assertBackendAssets(s);
       assert(!s.deploy_intent, 'Deployment already attempted; use reconcile with its deployment ID, never retry blindly');
-      this.acquire(s); this.assertBaseRef(s); this.assertBase(s);
+      this.assertEnvironment(s); this.acquire(s); this.assertBaseRef(s); this.assertBase(s);
       const cwd = this.package(s);
       s.deploy_intent = true; s.phase = 'deployment-uncertain'; this.save(s);
       const result = parseJsonOutput(this.command(this.vercel, ['deploy', '--prod', '--skip-domain', '--yes', '--json',
@@ -265,7 +402,7 @@ export class ReleaseWorkflow {
     return this.locked(id, async () => {
       const s = this.load(id); assert(s.deployment?.id, 'No deployment');
       s.deployment = this.checkDeployment(s, this.inspect(s, s.deployment.id));
-      await this.verify(s.deployment.url, s.descriptor);
+      await this.verifyCandidateRemote(s);
       s.candidate_verified = true; if (!s.promotion_intent && !s.public_verified_at) s.phase = 'candidate-verified'; this.save(s); return s;
     });
   }
@@ -278,7 +415,7 @@ export class ReleaseWorkflow {
         assert(!s.promotion_intent, 'Promotion outcome uncertain; verify public or reconcile, do not repeat');
         this.assertBase(s);
         this.checkDeployment(s, this.inspect(s, s.deployment.id));
-        await this.verify(s.deployment.url, s.descriptor);
+        await this.verifyCandidateRemote(s);
         s.promotion_intent = true; s.phase = 'promotion-uncertain'; this.save(s);
         this.command(this.vercel, ['promote', s.deployment.id, '--yes', '--timeout', '3m', '--scope', s.target.team_id], { cwd: path.join(path.dirname(this.file(id)), 'package'), timeout: 210000 });
       }
@@ -288,7 +425,7 @@ export class ReleaseWorkflow {
   async verifyPublicUnlocked(s) {
     const current = this.inspect(s, new URL(s.target.public_url).hostname);
     assert(current.id === s.deployment?.id && current.projectId === s.target.project_id, 'Public alias does not reference release deployment');
-    await this.verify(s.target.public_url, s.descriptor);
+    await this.verifyRelease(s, s.target.public_url);
     s.phase = 'public-verified'; s.public_verified_at = new Date().toISOString(); this.save(s);
     this.releaseLock(s); return s;
   }
@@ -305,6 +442,7 @@ export class ReleaseWorkflow {
   async accept(id, { device, previous, observed, source, checks }) {
     return this.locked(id, async () => {
       const s = this.load(id); assert(s.phase === 'public-verified', 'Public release verification required');
+      assert(s.mode !== 'backend', 'Backend-only publication has no firmware installation receipt');
       assert(/^[a-zA-Z0-9:_-]{1,80}$/.test(device || '') && /^\d+\.\d+\.\d+$/.test(previous || '') && observed === s.descriptor.version, 'Invalid device/version evidence');
       assert(source === 'operator' && checks === 'version,configuration,identity,functions', 'Explicit operator confirmation of all physical checks required');
       const entry = { device, previous, observed, source, checks, at: new Date().toISOString() };

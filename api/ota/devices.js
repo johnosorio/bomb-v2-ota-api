@@ -1,4 +1,5 @@
 import { configuration, inventory, listing, registration, OtaError } from "../../lib/ota/inventory.js";
+import { adminContext, contextListing } from "../../lib/ota/admin-context.js";
 
 export function createHandler({ env = process.env, fetchImpl = globalThis.fetch } = {}) {
   return async function handler(request, response) {
@@ -8,6 +9,13 @@ export function createHandler({ env = process.env, fetchImpl = globalThis.fetch 
     const reply = (status, body) => response.status(status).json(body);
     if (!["GET", "POST"].includes(request.method)) return reply(405, { error: "METHOD_NOT_ALLOWED" });
     try {
+      if (request.method === "POST" && Object.keys(request.query || {}).length) throw new OtaError(400, "INVALID_INPUT");
+      if (request.method === "GET" && request.query?.action === "context") {
+        const query = contextListing(request.query);
+        const repository = adminContext(env, request.headers?.authorization, fetchImpl);
+        const userId = await repository.authenticate();
+        return reply(200, { schema_version: 1, scopes: await repository.list(query, userId), limit: query.limit, offset: query.offset });
+      }
       const repository = inventory(configuration(env), request.headers?.authorization, fetchImpl);
       if (request.method === "POST" && request.headers?.["content-length"] !== undefined) {
         const length = request.headers["content-length"];
