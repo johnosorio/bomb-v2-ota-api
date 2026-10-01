@@ -65,8 +65,9 @@ Revisión independiente de permisos/errores por `bomb_reviewer`; coordinador
 integra y ejecuta suite canónica. Navegador local con endpoints sintéticos para
 navegación, ficha, confirmación, PIN y diseño móvil; no muta datos reales.
 
-El nuevo join PostgREST y la UI con Auth real requieren comprobación en Preview
-antes de publicar. Mantener manifiestos y firmware idénticos con el recorrido
+La lectura del nuevo join PostgREST y la UI con una sesión humana real
+requieren aceptación del operador; los controles HTTP comprobados al publicar
+se detallan abajo. Mantener manifiestos y firmware idénticos con el recorrido
 [sólo backend](OTA_RELEASE_OPERATIONS.md). El panel puede convivir con 0.2.45
 sin otra carga física.
 
@@ -81,4 +82,37 @@ Chrome de prueba: listado/ficha, preparación y cancelación de licencia,
 entrada/salida de autorización PIN, tres canales y viewport 390×844 sin
 scroll horizontal. Capturas sintéticas conservadas bajo
 `/private/tmp/bomb-web-admin/`. No se utilizaron cuentas ni secretos reales.
-Publicación y validación Auth/PostgREST remotas todavía pendientes.
+En el corte de validación local, publicación y Auth/PostgREST remotos seguían
+pendientes; la publicación posterior se registra a continuación.
+
+## Publicación autorizada — 2026-10-01
+
+Operador: «lanzalo para verlo en la web». Fuente `7f409746db0fa0125fc734608bac719aa08c3d88`,
+checkpoint `checkpoint/web-admin-2026-10-01`, referencias fuente y release
+verificadas en GitHub antes de desplegar. Release sólo backend
+`backend-7f409746db0fa0125fc734608bac719aa08c3d88`.
+
+Candidato `dpl_DsQ9kda4S2tHPepvYFmJd24vrxpm`, promovido a
+https://bomb-v2-ota-api.vercel.app/admin/ después de verificar manifiestos y
+bytes. Alias y todos los binarios comprobados públicamente sin bypass a las
+20:35:30 UTC. Los 22 archivos OTA conservan bytes/modos de la base pública
+`4bcfb024`; no se publica firmware nuevo (STABLE sigue 0.2.44; el equipo tiene
+0.2.45 por USB). No se modifican cuentas, licencias, credenciales ni hardware.
+
+Las ocho variables necesarias se guardaron en Production del proyecto Vercel
+existente mediante stdin privado; antes sólo se suministraban por despliegue.
+Incluyen el flag de administración de licencias. Secretos fuera de Git/logs;
+la base sigue siendo Development, no producción comercial.
+
+Verificación del candidato y pública: HTML/JS/CSS idénticos al commit, HTTP200,
+CSP y no-store; configuración Auth esperada HTTP200; inventario, PIN y licencias
+rechazan falta de sesión con 401; contexto rechaza JWT inválido con 401 y POST
+con query con 400. La comprobación real de lectura de ámbitos/roles mediante
+una sesión humana queda para el operador al entrar; esos recorridos están
+probados con Auth/PostgREST simulados, no se afirma un login humano remoto.
+La recuperación por correo real sigue pendiente.
+
+Estado durable del runner en `.ota-release/backend-7f409746db0fa0125fc734608bac719aa08c3d88/`;
+evidencias HTTP saneadas en `/private/tmp/bomb-web-admin/`. El runner general
+completó prepare → Git → deploy → verify → promote con configuración persistente
+y bypass existente limitado al candidato; liberó el lock de proyecto al cerrar.
