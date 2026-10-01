@@ -2,7 +2,8 @@
 
 Recorded 2026-10-01. Migration, public portal, verified human account and physical
 CoreS3 identity are active. OTA 0.2.43 → 0.2.44 and healthy boot are confirmed;
-complete PIN recovery remains under physical acceptance. Firmware contract: sibling
+the operator confirmed the guided PIN recovery journey after backend hotfix
+`4bcfb02`. Reboot persistence and negative journeys remain pending. Firmware contract: sibling
 [PIN_RECOVERY_CONTRACT.md](../../bomb-v2/PIN_RECOVERY_CONTRACT.md).
 
 ## Scope and delivery
@@ -23,8 +24,9 @@ human decisions/listing and signed device operations. The existing demo state
 helper moved from `api/_state.js` to `lib/demo-state.js`, with unchanged demo
 behavior, so the deployment contains 12 handlers. The package allowlist includes
 only the three reviewed public portal assets. No private environment file is
-included. STABLE manifest/artifact remain the already public 0.2.42 bytes; this
-portal increment must not regress them to the feature branch's old 0.2.13.
+included. Initial portal activation preserved the then-public 0.2.42 bytes.
+The subsequent OTA release and HTTP hotfix preserve STABLE 0.2.44 and must not
+regress it to an older feature-branch manifest.
 
 ## Required environment
 
@@ -94,7 +96,8 @@ a separate unfinished flow, not part of this release.
 Real acceptance: invite/login, wrong-scope denial, signed device identity,
 request/list, cancel and reject without PIN change, approve then physical touch,
 new/repeated PIN, return to login, reboot with new PIN, and preservation of
-identity, Wi-Fi, license, SD and game state. No physical test is complete yet.
+identity, Wi-Fi, license, SD and game state. The successful guided recovery is
+operator-confirmed below; the full negative/reboot/preservation matrix is not.
 Wi-Fi must already be connected; recovery cannot currently configure a new
 network from the locked screen. Forgotten portal-password self-service is also
 outside this initial invitation/login flow.
@@ -134,5 +137,30 @@ origin; public verification was anonymous. Generic release tooling still needs
 this environment/authentication integration committed instead of a temporary
 adapter. Never deploy a later package without preserving those requirements.
 
-Pending: physical PIN approval/save/re-login/reboot and negative journeys. Do
-not confuse healthy OTA boot with complete acceptance of the recovery feature.
+## HTTP hotfix and operator acceptance — 2026-10-01
+
+The first physical request displayed a code but failed with no portal response.
+Spreading Node/Vercel IncomingMessage lost inherited headers in the PIN router:
+device requests returned 415 and administrator requests lost Authorization.
+Commit `4bcfb0240d39300f4d9c04b448362662cc3d0fd5`, tag
+`checkpoint/pin-portal-http-fix-2026-10-01`, forwards the original request.
+It was committed/tagged/pushed before deployment `dpl_ChV55rdqJuaugwkMaRnn48vhZA9E`.
+The same 0.2.44 firmware artifact remained published; no firmware rebuild/upload.
+
+Backend suite: 93/93. Independent review reran 14/14 PIN tests and reproduced
+both failures against the previous router using the corrected runtime fixture.
+Luna supplied the fixture; integration corrected its synthetic MAC format and
+imports. The coordinator owned the router fix, integration and deployment.
+Anonymous public checks: portal 200, malformed device JSON 400 INVALID_INPUT,
+and STABLE 0.2.44 with expected size/hash. A 401 with a fake JWT alone does not
+prove successful authenticated approval.
+
+After instructions to reload the portal, request recovery on CoreS3, approve
+with the human account, confirm physically and set a new PIN, the operator
+reported: “Perfecto, funciona bien, commit, tag, push”. This records operator
+acceptance of that successful guided journey. No PIN or private key was recorded.
+Paired checkpoint: `checkpoint/pin-recovery-validated-2026-10-01`.
+
+Still pending as separate physical checks: new-PIN login after reboot,
+cancel/reject/expire, network failures, and exhaustive preservation of identity,
+Wi-Fi, license, SD and game state. Successful recovery does not close those checks.
