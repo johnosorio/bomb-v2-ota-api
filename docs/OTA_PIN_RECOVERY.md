@@ -1,7 +1,8 @@
 # PIN recovery: portal and physical confirmation
 
-Recorded 2026-10-01. Local implementation; remote deployment and physical
-acceptance remain pending. Firmware contract: sibling
+Recorded 2026-10-01. Migration, public portal, verified human account and physical
+CoreS3 identity are active. OTA 0.2.43 → 0.2.44 and healthy boot are confirmed;
+complete PIN recovery remains under physical acceptance. Firmware contract: sibling
 [PIN_RECOVERY_CONTRACT.md](../../bomb-v2/PIN_RECOVERY_CONTRACT.md).
 
 ## Scope and delivery
@@ -97,3 +98,41 @@ identity, Wi-Fi, license, SD and game state. No physical test is complete yet.
 Wi-Fi must already be connected; recovery cannot currently configure a new
 network from the locked screen. Forgotten portal-password self-service is also
 outside this initial invitation/login flow.
+
+
+## Authorized activation evidence — 2026-10-01
+
+The operator explicitly authorized migration, deployment/invitation and OTA.
+Only `20261001000100_ota_pin_recovery.sql` was pending/applied; SHA-256
+`4f8310aa3f7a423d458a1ca42ad0b4c9a1adf87c68936ba7242e73eb7d4faf55`.
+Restricted gateway login passed the real TLS/privilege check after migration.
+Only the exact portal redirect was added to Auth; 12 undeclared remote settings
+were preserved. The operator accepted the invitation and confirmed login; Auth
+also reported the email confirmed. One scope/admin membership was bootstrapped.
+
+Portal source `c0a0b9f9e8504a4244cf67682c4ab6344d317801` was deployed preserving
+0.2.42 first. Portal asset hashes, CSP, public Auth config and anonymous 401 were
+verified before and after promotion. Then the preserved firmware was published:
+
+- Release commit `5286d97e280af8cbe80841c83dfbbfea59e60abd`.
+- Release tag `ota/stable-0.2.44`; exact source tag
+  `checkpoint/ota-pin-source-0.2.44-2026-10-01` points to `4e4265a`.
+- Public deployment `dpl_9NPgziS9LdVLYXG4inpuTU3g3exy`, public verification
+  2026-10-01 15:32:47 UTC. Source and release refs were verified remotely first.
+- No rebuild or USB flash: actual OTA delivered 1,484,896 bytes with exact
+  `9fe689993eaf65dd3e9761206a3af43559bad9d1c19a7a37205a6a35dc6d363e` SHA,
+  followed by the pending-health and healthy-boot messages. Operator confirmed
+  installed 0.2.44.
+- Public fingerprint was read over the connected CoreS3 USB after OTA. A checked
+  operator-only SQL bootstrap used the confirmed account's scoped RPC context,
+  under authenticated role; registration/identity approval and audit committed
+  together. No existing identity was replaced; license remains `unlicensed`.
+
+The firmware release adapter preserved the seven PIN/Auth/gateway environment
+variables and used the existing protection bypass only for the exact candidate
+origin; public verification was anonymous. Generic release tooling still needs
+this environment/authentication integration committed instead of a temporary
+adapter. Never deploy a later package without preserving those requirements.
+
+Pending: physical PIN approval/save/re-login/reboot and negative journeys. Do
+not confuse healthy OTA boot with complete acceptance of the recovery feature.
