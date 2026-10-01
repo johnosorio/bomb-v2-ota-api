@@ -1,4 +1,4 @@
-import state, { json, recordAudit } from "./_state.js";
+import state, { json, recordAudit } from "../lib/demo-state.js";
 
 export const LIFECYCLE_STATES = ["DESCUBIERTO", "PENDIENTE_DE_AUTORIZAR", "VINCULADO", "DISPONIBLE", "RESERVADO", "EN_JUEGO", "MANTENIMIENTO", "RETIRADO"];
 

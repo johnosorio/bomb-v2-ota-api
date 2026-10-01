@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BOMB · Portal OTA</title><link rel="stylesheet" href="/admin/portal.css"></head>
+<body><main><header><p class="eyebrow">BOMB OS · PORTAL OTA</p><h1>Recuperar acceso al CoreS3</h1>
+<p>Autoriza la recuperación aquí y establece el nuevo PIN en el equipo.</p></header>
+<p id="status" role="status" aria-live="polite">Conectando con el portal…</p>
+<section id="login" hidden><h2>Acceso de administrador</h2>
+<form id="login-form"><label>Correo<input id="email" type="email" autocomplete="username" required></label>
+<label>Contraseña de tu cuenta<input id="password" type="password" autocomplete="current-password" required></label>
+<button id="sign-in" type="submit">Entrar</button></form>
+<p>Usa tu cuenta de administración. El PIN del CoreS3 no se introduce en este portal.</p></section>
+<section id="activation" hidden><h2>Establece la contraseña de tu cuenta</h2>
+<p>Has abierto tu invitación. Esta contraseña es para el portal; el PIN del CoreS3 se establece en el dispositivo.</p>
+<form id="activation-form"><label>Nueva contraseña<input id="new-password" type="password" autocomplete="new-password" minlength="12" required></label>
+<label>Repite la contraseña<input id="repeat-password" type="password" autocomplete="new-password" minlength="12" required></label>
+<button type="submit">Guardar y entrar</button><button id="activation-back" type="button" class="secondary">Cancelar</button></form></section>
+<section id="workspace" hidden><div class="toolbar"><h2>Solicitudes de tus equipos</h2>
+<button id="refresh" type="button">Actualizar</button><button id="logout" type="button" class="secondary">Cerrar sesión</button></div>
+<p>En CoreS3: entra en Sistema y pulsa <strong>Olvidé mi PIN</strong>. Compara el código de solicitud antes de autorizar.</p>
+<p id="empty" hidden>No hay solicitudes. Si el equipo indica que no está autorizado, revisa su registro e identidad con el administrador.</p>
+<div id="requests"></div></section>
+<section id="decision" hidden aria-labelledby="decision-title"><h2 id="decision-title">Confirmar autorización</h2>
+<p id="decision-detail"></p><p>Se conservarán identidad, Wi‑Fi, licencia y partidas. El cambio necesita confirmación física en CoreS3.</p>
+<form id="decision-form"><label>Escribe el código de 12 caracteres que muestra CoreS3<input id="code" maxlength="12" minlength="12" autocomplete="off" pattern="[0-9a-fA-F]{12}" required></label>
+<div class="toolbar"><button id="approve" type="submit">Autorizar recuperación</button><button id="back" type="button" class="secondary">Volver sin autorizar</button></div></form></section>
+<footer>Una solicitud caducada o cancelada no cambia el PIN. El portal nunca muestra ni guarda tu PIN.</footer>
+</main><script type="module" src="/admin/portal.js"></script></body></html>

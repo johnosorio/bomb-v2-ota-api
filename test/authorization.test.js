@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import authorization from "../api/authorization.js";
 import establishments from "../api/establishments.js";
 import licenses from "../api/licenses.js";
-import state from "../api/_state.js";
+import state from "../lib/demo-state.js";
 
 function invoke(handler, method, query = {}) {
   const result = { headers: {}, statusCode: 200, body: undefined };

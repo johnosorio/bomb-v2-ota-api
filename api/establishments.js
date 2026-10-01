@@ -1,4 +1,4 @@
-import state, { json } from "./_state.js";
+import state, { json } from "../lib/demo-state.js";
 
 export default function handler(request, response) {
   if (request.method === "OPTIONS") return response.status(204).end();

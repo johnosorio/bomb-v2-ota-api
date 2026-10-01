@@ -44,6 +44,7 @@ try {
     await file(`supabase/migrations/${name}`);
     if (name === "20260930000100_ota_credential_recovery.sql") await file("test/sql/credential-upgrade-after.sql");
   }
+  process.stdout.write((await file("test/sql/ota-pin-recovery.sql")).stdout);
   const result = await file("test/sql/ota-foundation.sql");
   process.stdout.write(result.stdout);
   process.stdout.write((await file("test/sql/ota-privileges.sql")).stdout);

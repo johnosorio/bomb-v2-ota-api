@@ -34,6 +34,7 @@ export function parseJsonOutput(output) {
   return JSON.parse(output.slice(start));
 }
 export function serviceFile(file) {
+  if (["api/releases/[channel].js", "public/admin/index.html", "public/admin/portal.css", "public/admin/portal.js"].includes(file)) return true;
   return /^(api|lib)\/[a-zA-Z0-9_./-]+\.(js|mjs|json)$/.test(file) ||
     /^public\/firmware\/[a-zA-Z0-9_.-]+\.bin$/.test(file) ||
     /^(package(?:-lock)?\.json|vercel\.json|release(?:-(?:beta|dev))?\.json)$/.test(file);

@@ -1,4 +1,4 @@
-import state, { json } from "./_state.js";
+import state, { json } from "../lib/demo-state.js";
 
 function isValid(license) {
   return license.status === "ACTIVE" &&

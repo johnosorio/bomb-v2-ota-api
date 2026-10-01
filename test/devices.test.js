@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import devices from "../api/devices.js";
-import state from "../api/_state.js";
+import state from "../lib/demo-state.js";
 
 function invoke(method, body = {}) {
   const result = { statusCode: 200, body: undefined };

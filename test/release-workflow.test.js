@@ -121,6 +121,8 @@ test('failed bytes verification prevents promotion and physical evidence needs e
 });
 
 test('package allowlist and target reject private paths and ambiguous destinations', () => {
+  for (const file of ['api/releases/[channel].js', 'public/admin/index.html', 'public/admin/portal.js', 'public/admin/portal.css']) assert.equal(serviceFile(file), true);
+  for (const file of ['public/admin/.env', 'public/admin/token.json', 'public/admin/session.js', 'public/admin/../secrets.js']) assert.equal(serviceFile(file), false);
   for (const file of ['.env.local', '.vercel/project.json', 'config/private.json', 'supabase/migrations/one.sql', 'README.md', 'scripts/secret.js']) assert.equal(serviceFile(file), false);
   assert.throws(() => checkTarget({ ...target, public_url: 'https://user:secret@example.test' }), /HTTPS origin/);
   assert.throws(() => checkTarget({ ...target, token: 'fixture' }), /fields/);

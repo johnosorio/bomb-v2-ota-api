@@ -1,4 +1,4 @@
-import state, { json, recordAudit } from "./_state.js";
+import state, { json, recordAudit } from "../lib/demo-state.js";
 function matches(device, rollout) { if (rollout.target_type === "device") return rollout.target_ids.includes(device.device_id); if (rollout.target_type === "establishment") return rollout.target_ids.includes(device.establishment_id); return rollout.target_ids.includes(device.batch_id); }
 export default function handler(request, response) {
   if (request.method === "OPTIONS") return response.status(204).end();

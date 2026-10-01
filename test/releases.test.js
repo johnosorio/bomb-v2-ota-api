@@ -29,9 +29,9 @@ test("channel handler preserves stable beta and dev manifest responses", () => {
   const stable = invoke("stable");
   assert.equal(stable.statusCode, 200);
   assert.equal(stable.body.channel, "stable");
-  assert.equal(stable.body.firmware_url, "https://ota.example.test/firmware/bomb-manager-0.2.13.bin");
+  assert.equal(stable.body.firmware_url, "https://ota.example.test/firmware/bomb-manager-0.2.42.bin");
   assert.equal(stable.body.sha256.length, 64);
-  assert.equal(stable.body.size, 1518080);
+  assert.equal(stable.body.size, 1468800);
 
   const beta = invoke("beta");
   assert.equal(beta.statusCode, 200);
