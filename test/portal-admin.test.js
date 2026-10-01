@@ -214,24 +214,33 @@ test('license facts and identity facts render in separate panels', async () => {
   assert.match(text(p.elements.get('identity-state')), /huella pública/i);
 });
 
-test('a linked identity without dates is visibly unlicensed and carries the non-enforcement notice', async () => {
+test('a linked identity without dates is visibly unlicensed and carries version-independent license limits', async () => {
   const unlicensed = { ...license, status: 'unlicensed', not_before: null, expires_at: null };
   const p = await signedIn({ reply: url => url.startsWith('/api/ota/licenses?') ? { license: unlicensed } : {} });
   await openLicense(p);
   assert.match(text(p.elements.get('license-state')), /Sin concesión en este panel/);
   assert.match(text(p.elements.get('license-state')), /todavía no se ha concedido una licencia con fechas/);
   assert.equal(p.elements.get('license-grant').textContent, 'Conceder licencia');
-  assert.match(text(p.elements.get('license-control')), /CoreS3 0\.2\.45/);
-  assert.match(text(p.elements.get('license-control')), /no activa todavía ese control/);
+  const control = text(p.elements.get('license-control'));
+  assert.match(control, /no acredita que la licencia se haya aplicado en el equipo/);
+  assert.match(control, /no informa qué firmware está instalado/);
+  assert.doesNotMatch(control, /0\.2\.(45|46)|demostración/i);
 });
 
-test('a granted license shows its start and expiration dates plus the informational 0.2.45 warning', async () => {
+test('a granted license shows its registered issuance and compatible-firmware behavior without claiming installation', async () => {
   const p = await signedIn({ reply: url => url.startsWith('/api/ota/licenses?') ? { license } : {} });
   await openLicense(p);
   const facts = text(p.elements.get('license-state'));
-  assert.match(facts, /Inicio/); assert.match(facts, /Vencimiento/);
-  assert.match(text(p.elements.get('license-control')), /cálculo es informativo/);
-  assert.match(text(p.elements.get('license-control')), /integración de las licencias.*pendiente/);
+  assert.match(facts, /Inicio/); assert.match(facts, /Vencimiento/); assert.match(facts, /Concesión emitida/);
+  const control = text(p.elements.get('license-control'));
+  assert.match(control, /cálculo es informativo/);
+  assert.match(control, /firmware compatible verifica y guarda la licencia firmada/);
+  assert.match(control, /sin conexión/);
+  assert.match(control, /bloquea el inicio de nuevas rondas/);
+  assert.match(control, /permite terminar la ronda que esté activa/);
+  assert.match(control, /no informa qué firmware está instalado/);
+  assert.doesNotMatch(control, /0\.2\.(45|46)|demostración/i);
+  assert.equal(p.calls.filter(call => call.url === '/api/ota/licenses' && call.options.method === 'POST').length, 0);
 });
 
 test('credential replacement includes CAS revision, credential id, and selected reason', async () => {

@@ -257,6 +257,7 @@ function renderLicense() {
     if (l.status === 'unlicensed') line(container, 'La identidad ya está vinculada, pero todavía no se ha concedido una licencia con fechas de inicio y fin.');
     else {
       detailValue(container, 'Inicio', dateText(l.not_before)); detailValue(container, 'Vencimiento', dateText(l.expires_at));
+      detailValue(container, 'Concesión emitida', dateText(l.issued_at));
       line(container, 'Fechas en tu zona horaria. La vigencia mostrada se calcula al consultar la ficha.');
     }
     detailValue(identity, 'Credencial', l.credential_status === 'active' ? 'Activa' : 'Retirada');
@@ -270,9 +271,9 @@ function renderLicense() {
     if (l.credential_status === 'active') option($('license-action'), 'revoke_credential', actionNames.revoke_credential);
     option($('license-action'), 'replace_credential', actionNames.replace_credential);
   }
-  line(control, 'En el servidor: la concesión debe estar vigente, con una credencial activa y entre sus fechas de inicio y vencimiento. La entrega segura comprueba además la posesión de la clave del equipo.');
+  line(control, 'En el servidor: la concesión se registra con una credencial y fechas de vigencia. Ese registro no acredita que la licencia se haya aplicado en el equipo.');
   line(control, 'En este panel: las fechas se comparan con el reloj de tu navegador. Este cálculo es informativo; no confirma que el equipo haya recibido o esté aplicando la licencia.');
-  line(control, 'CoreS3 0.2.45: sigue mostrando la autorización de demostración anterior, que no activa ni bloquea partidas. Esa demo no es una concesión registrada en este panel. La integración de las licencias de este panel en el control de partidas está pendiente. Conceder aquí una vigencia no activa todavía ese control en 0.2.45.');
+  line(control, 'Un firmware compatible verifica y guarda la licencia firmada. Mientras siga vigente permite usar el equipo sin conexión; al vencer bloquea el inicio de nuevas rondas y permite terminar la ronda que esté activa. El portal no informa qué firmware está instalado ni si el equipo recibió o aplicó la licencia.');
   $('license-actions').hidden = !admin();
 }
 
