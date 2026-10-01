@@ -116,3 +116,25 @@ Estado durable del runner en `.ota-release/backend-7f409746db0fa0125fc734608bac7
 evidencias HTTP saneadas en `/private/tmp/bomb-web-admin/`. El runner general
 completó prepare → Git → deploy → verify → promote con configuración persistente
 y bypass existente limitado al candidato; liberó el lock de proyecto al cerrar.
+
+## Ajuste de dispositivos y licencia de prueba — 2026-10-01
+
+Tras aceptación del operador de la navegación real: grupo único como contexto
+no seleccionable, inventario en tabla con registrar/actualizar juntos, ficha
+separada con licencia, fechas, identidad y explicación del control de vigencia.
+La demo legacy no se representa como licencia canónica. CoreS3 0.2.45 muestra
+la demo pero no aplica la política firmada al control de partidas; esta
+integración sigue pendiente y la ficha lo declara explícitamente.
+
+El operador solicitó 90 días desde hoy para el CoreS3 actual. Concesión aplicada
+desde su sesión humana del portal al equipo bm-cores3-E3F61B44, revisión 0 → 1,
+del 2026-10-01 00:00 al 2026-12-30 00:00 Europe/Madrid. La lectura posterior
+confirmó concesión dentro de vigencia y credencial activa. No se cambiaron
+credenciales, firmware ni la demo legacy. El contrato almacena fechas y estado,
+no un tipo comercial «prueba». Esto acredita sesión humana, contexto real,
+lectura de inventario/licencia y concesión confirmada; no activación en firmware.
+
+Validación del ajuste: 25/25 pruebas del portal, revisión independiente sin
+hallazgos; Chrome local con datos sintéticos, vistas de escritorio y móvil
+390px sin desbordamiento horizontal. Publicación del ajuste pendiente en este
+corte; se registrará después de verificar el candidato y alias público.

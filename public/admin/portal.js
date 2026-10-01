@@ -153,7 +153,7 @@ function clearAdministration() {
   scopes = []; devices = []; currentDevice = null; currentLicense = null; licenseLoaded = false;
   pendingOperation = null; scopeOffset = deviceOffset = 0;
   for (const id of ['device-detail', 'operation', 'operation-review']) $(id).hidden = true;
-  for (const id of ['scope-select', 'devices', 'license-state', 'operation-fields', 'operation-summary', 'releases']) $(id).replaceChildren();
+  for (const id of ['scope-select', 'scope-name', 'devices', 'license-state', 'identity-state', 'license-control', 'operation-fields', 'operation-summary', 'releases']) $(id).replaceChildren();
 }
 function scope() { return scopes.find(s => s.id === $('scope-select').value); }
 function admin() { return scope()?.role === 'admin'; }
@@ -177,10 +177,14 @@ async function loadScopes() {
   $('devices').replaceChildren(); $('scope-select').replaceChildren(); scopes = []; devices = [];
   $('register-open').hidden = true; $('devices-empty').hidden = true;
   $('scope-role').textContent = ''; $('devices-page').textContent = '';
+  $('scope-single').hidden = $('scope-picker').hidden = true; $('scope-name').textContent = '';
   for (const id of ['scope-prev','scope-next','devices-prev','devices-next']) $(id).hidden = true;
   const result = await callApi(`/api/ota/devices?action=context&limit=${pageSize}&offset=${scopeOffset}`);
   if (!Array.isArray(result.scopes)) throw new Error('No se pudieron cargar tus ámbitos.');
   scopes = result.scopes;
+  const onlyScope = scopes.length === 1 && scopeOffset === 0;
+  $('scope-single').hidden = !onlyScope; $('scope-picker').hidden = onlyScope || !scopes.length;
+  if (onlyScope) $('scope-name').textContent = scopes[0].name;
   for (const s of scopes) option($('scope-select'), s.id, s.name);
   $('scope-prev').hidden = scopeOffset === 0; $('scope-next').hidden = scopes.length < pageSize;
   deviceOffset = 0;
@@ -189,24 +193,27 @@ async function loadScopes() {
   await loadDevices();
 }
 async function loadDevices() {
-  devices = []; $('devices').replaceChildren(); $('devices-empty').hidden = true;
+  devices = []; $('devices').replaceChildren(); $('devices-empty').hidden = true; $('devices-table').hidden = true;
   $('devices-page').textContent = ''; $('devices-next').hidden = $('devices-prev').hidden = true;
   $('register-open').hidden = true;
   const s = scope(); if (!s) return;
   $('scope-role').textContent = s.role === 'admin' ? 'Administrador' : 'Sólo lectura';
   const result = await callApi(`/api/ota/devices?scope_id=${encodeURIComponent(s.id)}&limit=${pageSize}&offset=${deviceOffset}`);
   if (!Array.isArray(result.devices)) throw new Error('No se pudieron cargar los equipos.');
-  devices = result.devices;
+  devices = result.devices; $('devices-table').hidden = devices.length === 0;
   $('devices-empty').hidden = devices.length > 0; $('devices-empty').textContent = 'No hay dispositivos registrados en esta página.';
   $('register-open').hidden = !admin();
   $('devices-prev').hidden = deviceOffset === 0; $('devices-next').hidden = devices.length < pageSize;
   $('devices-page').textContent = devices.length ? `Equipos ${deviceOffset+1}–${deviceOffset+devices.length}` : '';
   for (const d of devices) {
-    const card = document.createElement('article'); card.className = 'device-card';
-    const info = document.createElement('div'), title = document.createElement('h3'); title.textContent = d.label; info.append(title);
-    line(info, `${d.model} · ${d.device_id}`); card.append(info);
-    const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary'; button.textContent = 'Abrir ficha';
-    button.onclick = () => run(() => openDevice(d)); card.append(button); $('devices').append(card);
+    const row = document.createElement('tr');
+    for (const text of [d.label, d.model, d.device_id]) {
+      const cell = document.createElement('td'); cell.textContent = text; row.append(cell);
+    }
+    const actions = document.createElement('td'), button = document.createElement('button');
+    button.type = 'button'; button.className = 'secondary'; button.textContent = 'Ver ficha';
+    button.setAttribute('aria-label', `Ver ficha de ${d.label}`);
+    button.onclick = () => run(() => openDevice(d)); actions.append(button); row.append(actions); $('devices').append(row);
   }
 }
 async function openDevice(d) {
@@ -216,7 +223,8 @@ async function openDevice(d) {
 }
 async function loadLicense() {
   licenseLoaded = false; currentLicense = null; $('license-actions').hidden = true;
-  $('license-state').replaceChildren(); $('license-error').hidden = true;
+  $('license-state').replaceChildren(); $('identity-state').replaceChildren(); $('license-control').replaceChildren();
+  $('license-grant').hidden = true; $('license-error').hidden = true;
   try {
     const result = await callApi(`/api/ota/licenses?device_id=${encodeURIComponent(currentDevice.id)}`);
     if (!Object.hasOwn(result, 'license')) throw new Error('Estado de licencia no disponible.');
@@ -226,28 +234,48 @@ async function loadLicense() {
     throw error;
   }
 }
+function detailValue(parent, label, value) {
+  const item = document.createElement('div'); item.className = 'detail-value';
+  const name = document.createElement('span'); name.className = 'field-label'; name.textContent = label;
+  const content = document.createElement('strong'); content.textContent = value; item.append(name, content); parent.append(item);
+}
 function renderLicense() {
-  const container = $('license-state'), l = currentLicense; container.replaceChildren();
+  const container = $('license-state'), identity = $('identity-state'), control = $('license-control'), l = currentLicense;
+  container.replaceChildren(); identity.replaceChildren(); control.replaceChildren();
   $('license-action').replaceChildren(); option($('license-action'), '', 'Selecciona una acción');
+  $('license-grant').hidden = !admin() || !l || l.credential_status !== 'active';
   if (!l) {
-    line(container, 'Identidad pendiente de vinculación. Este registro aún no tiene una credencial aprobada.');
+    detailValue(container, 'Estado', 'Sin concesión');
+    line(container, 'Primero vincula la identidad pública del equipo para poder conceder una licencia.');
+    detailValue(identity, 'Estado', 'Pendiente de vinculación');
     option($('license-action'), 'approve_identity', actionNames.approve_identity);
   } else {
     const now = Math.floor(Date.now()/1000);
-    let label = { unlicensed:'Sin licencia concedida', revoked:'Licencia revocada', granted:'Licencia concedida' }[l.status] || 'Estado desconocido';
-    if (l.status === 'granted') label = now < l.not_before ? 'Concesión futura' : now >= l.expires_at ? 'Licencia vencida' : 'Concesión dentro de vigencia';
-    const badge = document.createElement('p'); badge.className = 'license-badge'; badge.textContent = label; container.append(badge);
-    line(container, `Credencial: ${l.credential_status === 'active' ? 'Activa' : 'Retirada'}`);
-    line(container, `MAC: ${l.mac}`); line(container, `Huella pública SHA-256: ${l.device_key_sha256}`);
-    line(container, `Vigencia: ${dateText(l.not_before)} → ${dateText(l.expires_at)}`);
-    line(container, `Revisión ${l.revision} · Actualizada ${new Date(l.updated_at).toLocaleString()}`);
+    let label = { unlicensed:'Sin concesión en este panel', revoked:'Revocada', granted:'Concedida' }[l.status] || 'Estado desconocido';
+    if (l.status === 'granted') label = now < l.not_before ? 'Vigencia futura' : now >= l.expires_at ? 'Vencida' : 'Dentro de vigencia';
+    detailValue(container, 'Estado de la concesión', label);
+    if (l.status === 'unlicensed') line(container, 'La identidad ya está vinculada, pero todavía no se ha concedido una licencia con fechas de inicio y fin.');
+    else {
+      detailValue(container, 'Inicio', dateText(l.not_before)); detailValue(container, 'Vencimiento', dateText(l.expires_at));
+      line(container, 'Fechas en tu zona horaria. La vigencia mostrada se calcula al consultar la ficha.');
+    }
+    detailValue(identity, 'Credencial', l.credential_status === 'active' ? 'Activa' : 'Retirada');
+    detailValue(identity, 'MAC', l.mac);
+    const more = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = 'Ver huella pública'; more.append(summary);
+    const fingerprint = document.createElement('code'); fingerprint.textContent = l.device_key_sha256; more.append(fingerprint); identity.append(more);
+    line(identity, `Revisión ${l.revision} · Actualizada ${new Date(l.updated_at).toLocaleString()}`);
+    $('license-grant').textContent = l.status === 'unlicensed' ? 'Conceder licencia' : 'Renovar o cambiar vigencia';
     if (l.credential_status === 'active') option($('license-action'), 'grant', actionNames.grant);
     if (l.status === 'granted') option($('license-action'), 'revoke', actionNames.revoke);
     if (l.credential_status === 'active') option($('license-action'), 'revoke_credential', actionNames.revoke_credential);
     option($('license-action'), 'replace_credential', actionNames.replace_credential);
   }
+  line(control, 'En el servidor: la concesión debe estar vigente, con una credencial activa y entre sus fechas de inicio y vencimiento. La entrega segura comprueba además la posesión de la clave del equipo.');
+  line(control, 'En este panel: las fechas se comparan con el reloj de tu navegador. Este cálculo es informativo; no confirma que el equipo haya recibido o esté aplicando la licencia.');
+  line(control, 'CoreS3 0.2.45: sigue mostrando la autorización de demostración anterior, que no activa ni bloquea partidas. Esa demo no es una concesión registrada en este panel. La integración de las licencias de este panel en el control de partidas está pendiente. Conceder aquí una vigencia no activa todavía ese control en 0.2.45.');
   $('license-actions').hidden = !admin();
 }
+
 function field(id, label, type = 'text', choices) {
   const wrapper = document.createElement('label'); wrapper.textContent = label;
   const input = document.createElement(choices ? 'select' : 'input'); input.id = id; input.required = true;
@@ -390,6 +418,7 @@ $('devices-next').onclick = () => run(async () => {deviceOffset += pageSize; awa
 $('device-refresh').onclick = () => run(loadLicense);
 $('device-back').onclick = () => {currentDevice = null; currentLicense = null; licenseLoaded = false; $('device-detail').hidden = true; $('workspace').hidden = false;};
 $('register-open').onclick = () => beginOperation('register');
+$('license-grant').onclick = () => beginOperation('grant');
 $('action-open').onclick = () => {const action=$('license-action').value; if (action) beginOperation(action); else status('Selecciona una acción.');};
 $('operation-form').onsubmit = e => {e.preventDefault(); run(async () => prepareOperation());};
 $('operation-cancel').onclick = () => run(returnFromOperation);

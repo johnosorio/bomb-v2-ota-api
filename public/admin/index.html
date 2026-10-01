@@ -23,10 +23,11 @@
 <div class="toolbar"><div><p class="eyebrow">ESPACIO DE ADMINISTRACIÓN</p><h2 id="workspace-title">Dispositivos</h2></div><button id="logout" type="button" class="secondary">Cerrar sesión</button></div>
 <nav aria-label="Administración"><button id="nav-devices" type="button">Dispositivos</button><button id="nav-pin" type="button">Recuperación PIN</button><button id="nav-releases" type="button">Versiones OTA</button></nav>
 <div id="devices-view">
-<div class="toolbar"><label class="grow">Ámbito<select id="scope-select" aria-label="Ámbito"></select></label><span id="scope-role" class="badge"></span><button id="refresh-devices" type="button" class="secondary">Actualizar equipos</button></div>
+<div class="scope-context"><div id="scope-single" hidden><span class="field-label">Grupo de acceso</span><strong id="scope-name"></strong></div><label id="scope-picker" class="grow" hidden>Grupo de acceso<select id="scope-select" aria-label="Grupo de acceso"></select></label><span id="scope-role" class="badge"></span></div>
+<div class="inventory-heading"><div><h3>Equipos registrados</h3><p>Selecciona un equipo para gestionar su licencia e identidad.</p></div><div class="toolbar"><button id="refresh-devices" type="button" class="secondary">Actualizar</button><button id="register-open" type="button" hidden>Registrar equipo</button></div></div>
 <div class="toolbar"><button id="scope-prev" type="button" class="secondary" hidden>Ámbitos anteriores</button><button id="scope-next" type="button" class="secondary" hidden>Más ámbitos</button></div>
-<p id="devices-empty" hidden>No hay dispositivos registrados en este ámbito.</p><div id="devices"></div>
-<div class="toolbar"><button id="devices-prev" type="button" class="secondary" hidden>Equipos anteriores</button><span id="devices-page"></span><button id="devices-next" type="button" class="secondary" hidden>Más equipos</button><button id="register-open" type="button" hidden>Registrar equipo</button></div>
+<p id="devices-empty" hidden>No hay dispositivos registrados en este ámbito.</p><div class="table-scroll"><table id="devices-table"><thead><tr><th scope="col">Equipo</th><th scope="col">Modelo</th><th scope="col">Identificador</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead><tbody id="devices"></tbody></table></div>
+<div class="toolbar"><button id="devices-prev" type="button" class="secondary" hidden>Equipos anteriores</button><span id="devices-page"></span><button id="devices-next" type="button" class="secondary" hidden>Más equipos</button></div>
 <p class="muted">El registro identifica un equipo. Su conexión y versión instalada se comprueban en el CoreS3.</p>
 </div>
 <div id="pin-view" hidden><div class="toolbar"><h3>Solicitudes de recuperación</h3><button id="refresh" type="button" class="secondary">Actualizar solicitudes</button></div>
@@ -34,10 +35,14 @@
 <p id="empty" hidden>No hay solicitudes accesibles para tu cuenta.</p><div id="requests"></div></div>
 <div id="releases-view" hidden><div class="toolbar"><h3>Versiones publicadas</h3><button id="refresh-releases" type="button" class="secondary">Actualizar versiones</button></div><p>Manifiestos publicados por canal. La instalación se inicia desde el equipo.</p><div id="releases"></div></div>
 </section>
-<section id="device-detail" hidden aria-labelledby="device-title"><div class="toolbar"><h2 id="device-title"></h2><button id="device-refresh" type="button" class="secondary">Actualizar ficha</button><button id="device-back" type="button" class="secondary">Volver a equipos</button></div>
-<p id="device-code"></p><div id="license-state"></div><p id="license-error" role="status" hidden></p>
-<div id="license-actions" hidden><label>Acción<select id="license-action"><option value="">Selecciona una acción</option></select></label><button id="action-open" type="button">Preparar cambio</button></div>
-<p class="muted">La concesión administrativa y la credencial son independientes. Esta ficha no confirma la activación ni la instalación en el dispositivo.</p></section>
+<section id="device-detail" hidden aria-labelledby="device-title">
+<div class="detail-breadcrumb"><button id="device-back" type="button" class="text-button">← Dispositivos</button><span>/</span><span>Ficha del equipo</span></div>
+<div class="inventory-heading"><div><h2 id="device-title"></h2><p id="device-code"></p></div><button id="device-refresh" type="button" class="secondary">Actualizar ficha</button></div>
+<div class="detail-grid"><div class="detail-panel"><h3>Licencia del equipo</h3><div id="license-state"></div><p id="license-error" role="status" hidden></p><button id="license-grant" type="button" hidden>Conceder licencia</button></div>
+<div class="detail-panel"><h3>Identidad y credencial</h3><div id="identity-state"></div></div></div>
+<div class="detail-panel verification-panel"><h3>Cómo se comprueba la vigencia</h3><div id="license-control"></div></div>
+<div id="license-actions" class="detail-panel" hidden><h3>Acciones administrativas</h3><p>Los cambios de identidad o licencia requieren revisión y confirmación.</p><div class="toolbar"><label class="grow">Acción<select id="license-action"><option value="">Selecciona una acción</option></select></label><button id="action-open" type="button">Preparar cambio</button></div></div>
+</section>
 <section id="operation" hidden aria-labelledby="operation-title"><h2 id="operation-title"></h2><p id="operation-target"></p>
 <form id="operation-form"><div id="operation-fields"></div><button type="submit">Revisar cambio</button><button id="operation-cancel" type="button" class="secondary">Cancelar</button></form></section>
 <section id="operation-review" hidden aria-labelledby="review-title"><h2 id="review-title">Confirmar cambio</h2><div id="operation-summary"></div><p id="operation-message" role="status"></p><div class="toolbar"><button id="operation-confirm" type="button">Confirmar cambio</button><button id="operation-return" type="button" class="secondary">Volver sin aplicar</button></div></section>

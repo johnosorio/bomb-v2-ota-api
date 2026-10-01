@@ -24,8 +24,11 @@ async function signedIn({ role = 'admin', scopes = [{ id: scopeId, name: 'Ámbit
 }
 
 async function openLicense(p) {
-  await p.elements.get('devices').children[0].children[1].onclick(); await p.idle();
+  const row = p.elements.get('devices').children[0];
+  await row.children[3].children[0].onclick(); await p.idle();
 }
+
+const text = element => element.children.map(node => node.textContent || text(node)).join(' ');
 
 async function prepareGrant(p) {
   p.elements.get('license-action').value = 'grant'; await p.click('action-open');
@@ -43,6 +46,25 @@ test('session opens the context dashboard and logout clears it even when Auth lo
   assert.equal(p.elements.get('workspace').hidden, true);
   assert.equal(p.elements.get('login').hidden, false);
   assert.equal(p.elements.get('status').textContent, 'Sesión cerrada en este navegador.');
+});
+
+test('a single scope hides the selector and names the access group', async () => {
+  const p = await signedIn({ scopes: [{ id: scopeId, name: 'Sede Norte', role: 'admin' }] });
+  assert.equal(p.elements.get('scope-single').hidden, false);
+  assert.equal(p.elements.get('scope-picker').hidden, true);
+  assert.equal(p.elements.get('scope-name').textContent, 'Sede Norte');
+});
+
+test('multiple scopes show selectable options and load the selected scope', async () => {
+  const other = '10000000-0000-0000-0000-000000000002';
+  const p = await signedIn({ scopes: [{ id: scopeId, name: 'Norte', role: 'admin' }, { id: other, name: 'Sur', role: 'viewer' }],
+    deviceReply: url => ({ devices: url.includes(encodeURIComponent(other)) ? [] : [device] }) });
+  assert.equal(p.elements.get('scope-single').hidden, true);
+  assert.equal(p.elements.get('scope-picker').hidden, false);
+  assert.deepEqual(p.elements.get('scope-select').children.map(option => option.textContent), ['Norte', 'Sur']);
+  p.elements.get('scope-select').value = other; await p.elements.get('scope-select').onchange(); await p.idle();
+  assert.equal(p.elements.get('scope-role').textContent, 'Sólo lectura');
+  assert.match(p.calls.at(-1).url, new RegExp(`scope_id=${other}`));
 });
 
 test('viewer context shows a valid license but no mutation controls', async () => {
@@ -178,9 +200,38 @@ test('scope and device labels remain textContent, never inserted as HTML', async
   const payload = '<img src=x onerror=alert(1)>';
   const p = await signedIn({ scopes: [{ id: scopeId, name: payload, role: 'admin' }], devices: [{ ...device, label: payload }] });
   assert.equal(p.elements.get('scope-select').children[0].textContent, payload);
-  const title = p.elements.get('devices').children[0].children[0].children[0];
+  const title = p.elements.get('devices').children[0].children[0];
   assert.equal(title.textContent, payload);
   assert.equal(title.innerHTML, undefined);
+});
+
+test('license facts and identity facts render in separate panels', async () => {
+  const p = await signedIn({ reply: url => url.startsWith('/api/ota/licenses?') ? { license } : {} });
+  await openLicense(p);
+  assert.match(text(p.elements.get('license-state')), /Estado de la concesión/);
+  assert.doesNotMatch(text(p.elements.get('license-state')), /AA:BB:CC:DD:EE:FF/);
+  assert.match(text(p.elements.get('identity-state')), /AA:BB:CC:DD:EE:FF/);
+  assert.match(text(p.elements.get('identity-state')), /huella pública/i);
+});
+
+test('a linked identity without dates is visibly unlicensed and carries the non-enforcement notice', async () => {
+  const unlicensed = { ...license, status: 'unlicensed', not_before: null, expires_at: null };
+  const p = await signedIn({ reply: url => url.startsWith('/api/ota/licenses?') ? { license: unlicensed } : {} });
+  await openLicense(p);
+  assert.match(text(p.elements.get('license-state')), /Sin concesión en este panel/);
+  assert.match(text(p.elements.get('license-state')), /todavía no se ha concedido una licencia con fechas/);
+  assert.equal(p.elements.get('license-grant').textContent, 'Conceder licencia');
+  assert.match(text(p.elements.get('license-control')), /CoreS3 0\.2\.45/);
+  assert.match(text(p.elements.get('license-control')), /no activa todavía ese control/);
+});
+
+test('a granted license shows its start and expiration dates plus the informational 0.2.45 warning', async () => {
+  const p = await signedIn({ reply: url => url.startsWith('/api/ota/licenses?') ? { license } : {} });
+  await openLicense(p);
+  const facts = text(p.elements.get('license-state'));
+  assert.match(facts, /Inicio/); assert.match(facts, /Vencimiento/);
+  assert.match(text(p.elements.get('license-control')), /cálculo es informativo/);
+  assert.match(text(p.elements.get('license-control')), /integración de las licencias.*pendiente/);
 });
 
 test('credential replacement includes CAS revision, credential id, and selected reason', async () => {
