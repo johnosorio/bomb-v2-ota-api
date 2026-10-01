@@ -9,3 +9,5 @@
 /scripts/
 /supabase/
 /config/
+/.ota-release/
+/releases/

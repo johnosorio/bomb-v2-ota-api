@@ -154,3 +154,18 @@ El firmware del dispositivo valida tamaño y SHA-256 antes de escribir la
 partición OTA. El CoreS3 usa HTTPS y el bundle de certificados incluido en
 ESP-IDF para validar el servidor. La firma del manifiesto y la autorización de
 canales quedan como pasos de endurecimiento para producción.
+
+## Publicación por candidato conservado (UX-04R)
+
+Herramienta: `node scripts/ota-release.mjs help` (o `../bomb-v2/ctl.sh ota-release help`).
+Usa descriptor/procedencia del build, base pública explícita, índice Git aislado,
+commit/tag/push verificados, despliegue sin promoción y verificación por bytes.
+Los pasos remotos son explícitos y requieren autorización vigente; los tests
+usarán sólo fixtures. La integración real de este flujo sigue pendiente.
+
+Guía, etapas, reanudación, locks y límites: [UX-04R](../bomb-v2/FLUJOS_MEJORA_PLAN.md#ux-04r--proceso-de-publicación-ota-reproducible).
+El helper `publish_firmware.sh` sólo prepara archivos mediante descriptor; ya no
+acepta la antigua interfaz BIN VERSION CANAL ni anuncia publicación remota.
+El estado local `.ota-release/` no se sube a Vercel ni contiene credenciales.
+Conservar evidencia depurada de publicación/instalación en los documentos de
+la release; la instalación sólo se registra con confirmación del operador.
