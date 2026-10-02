@@ -43,6 +43,6 @@ Ante vencimiento/revocación conocida, conservar la ronda activa y bloquear nuev
 partidas/rondas, sin STOP a Bomb01. No hubo carga, promoción STABLE ni despliegue
 de producción. Una carga posterior sigue requiriendo su autorización específica.
 
-[Notas completas y decisiones del operador](../../bomb-v2/OTA_PENDIENTES.md),
+[Notas completas y decisiones del operador](../../firmware/OTA_PENDIENTES.md),
 [contrato gateway](OTA_DEVICE_GATEWAY.md),
 [administración](OTA_LICENSE_ADMINISTRATION.md).

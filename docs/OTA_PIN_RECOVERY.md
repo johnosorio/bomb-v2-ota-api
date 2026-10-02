@@ -4,7 +4,7 @@ Recorded 2026-10-01. Migration, public portal, verified human account and physic
 CoreS3 identity are active. OTA 0.2.43 → 0.2.44 and healthy boot are confirmed;
 the operator confirmed the guided PIN recovery journey after backend hotfix
 `4bcfb02`. Reboot persistence and negative journeys remain pending. Firmware contract: sibling
-[PIN_RECOVERY_CONTRACT.md](../../bomb-v2/PIN_RECOVERY_CONTRACT.md).
+[PIN_RECOVERY_CONTRACT.md](../../firmware/PIN_RECOVERY_CONTRACT.md).
 
 ## Scope and delivery
 

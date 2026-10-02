@@ -1,7 +1,7 @@
 # BOMB OTA backend
 
-This is the canonical API repository; firmware lives in sibling `bomb-v2`.
-Before changes read `../bomb-v2/AGENT_WORKFLOW.md` and the applicable `bomb-coder`
+This is the canonical API repository; firmware lives in sibling `firmware`.
+Before changes read `../firmware/AGENT_WORKFLOW.md` and the applicable `bomb-coder`
 or `bomb-deep-dive` skill references there. If unavailable, request that context;
 do not create a replacement clone. Current contract: `docs/OTA_FOUNDATION.md`.
 

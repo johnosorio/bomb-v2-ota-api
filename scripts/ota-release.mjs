@@ -66,7 +66,7 @@ export async function main(argv) {
   }
   const repo = options.repo || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const backendOnly = ['plan-backend', 'prepare-backend'].includes(action) || options.id?.startsWith('backend-');
-  const workflow = new ReleaseWorkflow({ repo, firmwareRepo: backendOnly ? undefined : options['firmware-repo'] || path.resolve(repo, '../bomb-v2'), vercel: options.vercel });
+  const workflow = new ReleaseWorkflow({ repo, firmwareRepo: backendOnly ? undefined : options['firmware-repo'] || path.resolve(repo, '../firmware'), vercel: options.vercel });
   let result;
   if (['plan-backend', 'prepare-backend'].includes(action)) {
     required('commit', 'source-tag', 'target');

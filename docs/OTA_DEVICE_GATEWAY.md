@@ -85,7 +85,7 @@ acceso público; esta cuota no es protección global frente a DDoS.
 ## Respuesta firmada y reloj
 
 Licencia válida: JWS ES256 ya definido en
-[contrato compartido](../../bomb-v2/OTA_03_CONTRATO.md), ligado a UUID, credencial,
+[contrato compartido](../../firmware/OTA_03_CONTRATO.md), ligado a UUID, credencial,
 MAC, huella, revisión y vigencia. Se emite sólo si la concesión actual está
 granted y `issued_at <= ahora`, `not_before <= ahora < expires_at`.
 

@@ -60,7 +60,7 @@ no son licencias válidas.
 inyectadas, destinatario (UUID, credencial, huella de clave y MAC), tiempo UTC
 y revisión mínima. Perfil estricto JWS de hasta 2048 caracteres; algoritmo,
 issuer, audience y tipo fijos, sin descargar claves indicadas por el documento.
-Contrato compartido: [OTA_03_CONTRATO.md](../bomb-v2/OTA_03_CONTRATO.md).
+Contrato compartido: [OTA_03_CONTRATO.md](../firmware/OTA_03_CONTRATO.md).
 
 No es un endpoint de emisión ni autoriza administradores/dispositivos por sí
 solo. El gateway conecta este componente puro con la concesión DB y su firmante
@@ -157,13 +157,13 @@ canales quedan como pasos de endurecimiento para producción.
 
 ## Publicación por candidato conservado (UX-04R)
 
-Herramienta: `node scripts/ota-release.mjs help` (o `../bomb-v2/ctl.sh ota-release help`).
+Herramienta: `node scripts/ota-release.mjs help` (o `../firmware/ctl.sh ota-release help`).
 Usa descriptor/procedencia del build, base pública explícita, índice Git aislado,
 commit/tag/push verificados, despliegue sin promoción y verificación por bytes.
 Los pasos remotos son explícitos y requieren autorización vigente; los tests
 usarán sólo fixtures. La integración real de este flujo sigue pendiente.
 
-Guía, etapas, reanudación, locks y límites: [UX-04R](../bomb-v2/FLUJOS_MEJORA_PLAN.md#ux-04r--proceso-de-publicación-ota-reproducible).
+Guía, etapas, reanudación, locks y límites: [UX-04R](../firmware/FLUJOS_MEJORA_PLAN.md#ux-04r--proceso-de-publicación-ota-reproducible).
 El helper `publish_firmware.sh` sólo prepara archivos mediante descriptor; ya no
 acepta la antigua interfaz BIN VERSION CANAL ni anuncia publicación remota.
 El estado local `.ota-release/` no se sube a Vercel ni contiene credenciales.
